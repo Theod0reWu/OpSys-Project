@@ -10,6 +10,7 @@ class CPU {
 		Process current; //currently running process
 		Process* queue; //queue of processes (wait state)
 		Process* running; //list of alive processes
+		int contextSwitches = 0; //counts # of context switches
 };
 
 void fetch(char** args, int& n, int& seed, double& lambda, int& bound, int& cs, int& alpha, int& slice) {

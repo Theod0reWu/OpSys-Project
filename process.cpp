@@ -3,7 +3,6 @@ class Process {
 		char ID;
 		int waitTime = 0; //counts time in queue
 		int IOTime = 0; //counts time in I/O
-		int contextSwitches = 0; //counts # of context switches
 		int arrival; //arrival time
 		int noBursts; //# of bursts
 		int* CPUBursts; //holds list of CPU burst times
