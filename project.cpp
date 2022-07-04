@@ -5,8 +5,6 @@
 #include <math.h>
 #include "process.cpp"
 
-
-
 class CPU {
 	public:
 		Process current; //currently running process
@@ -63,7 +61,7 @@ Process* build(int n, int seed, double lambda, int bound) {
 //reset all process variables
 void resetAll(Process* p, int n) {
 	for (int i = 0; i < n; i++) {
-		printf("here: %c\n", p[i].ID);
+		//printf("here: %c\n", p[i].ID);
 		p[i].reset();
 	}
 }
