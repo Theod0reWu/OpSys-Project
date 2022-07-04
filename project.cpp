@@ -30,7 +30,8 @@ class Process {
 class CPU {
 	public:
 		Process current; //currently running process
-		Process* queue; //queue of processes
+		Process* queue; //queue of processes (wait state)
+		Process* running; //list of alive processes
 };
 
 void fetch(char** args, int& n, int& seed, double& lambda, int& bound, int& cs, int& alpha, int& slice) {
