@@ -14,8 +14,17 @@ class Process {
 		int noBursts; //# of bursts
 		int* CPUBursts; //holds list of CPU burst times
 		int* IOBursts; //holds list of I/O burst times
-		int step; //step is index of CPU or I/O burst list (reset when necesssary)
-		bool place; //place = true if doing CPU things, false otherwise
+		int step = 0; //step is index of CPU or I/O burst list (reset when necesssary)
+		bool place = false; //place = true if doing CPU things, false otherwise
+		
+		//reset all values (except burst data)
+		void reset() {
+			this->waitTime = 0;
+			this->IOTime = 0;
+			this->contextSwitches = 0;
+			this->step = 0;
+			this->place = false;
+		}
 };
 
 class CPU {
@@ -70,6 +79,14 @@ Process* build(int n, int seed, double lambda, int bound) {
 	return processes;
 }
 
+//reset all process variables
+void resetAll(Process* p, int n) {
+	for (int i = 0; i < n; i++) {
+		printf("here: %c\n", p[i].ID);
+		p[i].reset();
+	}
+}
+
 int main(int argc, char** argv) {
 	//error handling
 	
@@ -99,12 +116,16 @@ int main(int argc, char** argv) {
 	}
 	
 	//do FCFS
+	resetAll(p, n);
 	
 	//do SJF
+	resetAll(p, n);
 	
 	//do SRT
+	resetAll(p, n);
 	
 	//do RR
+	resetAll(p, n);
 	
 	//output
 	printf("hello\n");
