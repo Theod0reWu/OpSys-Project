@@ -4,13 +4,14 @@
 #include <string.h>
 #include <math.h>
 #include "process.cpp"
+#include <deque>
 
 class CPU {
 	public:
-		Process current; //currently running process
-		Process* queue; //queue of processes (wait state)
-		Process* running; //list of alive processes
+		Process* current; //currently running process
+		std::deque<Process> queue; //queue of processes (wait state)
 		int contextSwitches = 0; //counts # of context switches
+		bool switching = false; //true when performing a context switch
 };
 
 void fetch(char** args, int& n, int& seed, double& lambda, int& bound, int& cs, int& alpha, int& slice) {
@@ -67,6 +68,44 @@ void resetAll(Process* p, int n) {
 	}
 }
 
+void printQueue(CPU c) {
+	printf("[Q:");
+	bool empty = true;
+	for (auto p = c.queue.begin(); p != c.queue.end(); p++) {
+		printf(" %c", (*p).ID);
+		empty = false;
+	}
+	if (empty) {printf(" empty]\n");}
+	else {printf("]\n");}
+}
+
+void printTime(int t) {
+	printf("time %dms: ", t);
+}
+
+void FCFS(Process* p, int n) {
+	//initialize
+	int time = 0;
+	CPU cpu; 
+	//int alive = n; //counter for how many processes are still alive
+	
+	//start
+	printTime(time);
+	printf("Simulator started for FCFS ");
+	printQueue(cpu);
+	
+	//loop
+	while (n > 0) {
+		time++;
+		
+	}
+	
+	//end
+	printTime(time);
+	printf("Simulator ended for FCFS ");
+	printQueue(cpu);
+}
+
 int main(int argc, char** argv) {
 	//error handling
 	
@@ -95,8 +134,11 @@ int main(int argc, char** argv) {
 		}
 	}
 	
+	printf("\n");
+	
 	//do FCFS
 	resetAll(p, n);
+	FCFS(p, n);
 	
 	//do SJF
 	resetAll(p, n);
@@ -106,9 +148,6 @@ int main(int argc, char** argv) {
 	
 	//do RR
 	resetAll(p, n);
-	
-	//output
-	printf("hello\n");
 	
 	//cleanup
 	for (int i = 0; i < n; i++) {
