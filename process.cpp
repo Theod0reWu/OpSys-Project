@@ -2,8 +2,10 @@ class Process {
 	public:
 		char ID;
 		int waitTime = 0; //counts time in queue
+		int CPUTime = 0; //counts time in CPU
 		int IOTime = 0; //counts time in I/O
 		int arrival; //arrival time
+		int nextArr; //next arrival time
 		int noBursts; //# of bursts
 		int* CPUBursts; //holds list of CPU burst times
 		int* IOBursts; //holds list of I/O burst times
@@ -15,10 +17,16 @@ class Process {
 		//reset all values (except burst data)
 		void reset() {
 			this->waitTime = 0;
+			this->CPUTime = 0;
 			this->IOTime = 0;
+			this->nextArr = this->arrival;
 			this->step = 0;
 			this->inCPU = false;
 			this->inQueue = false;
 			this->inIO = false;
 		}
+		
+		bool operator==(Process const& other) {
+			return this->ID == other.ID;
+		}			
 };
