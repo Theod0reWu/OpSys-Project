@@ -10,7 +10,7 @@ class CPU {
 	public:
 		Process* current = NULL; //currently running process
 		std::deque<Process> queue; //queue of processes (wait state)
-		int contextSwitches = 0; //counts # of context switches
+		int context = 0; //counts remaining time of context switch
 };
 
 void fetch(char** args, int& n, int& seed, double& lambda, int& bound, int& cs, int& alpha, int& slice) {
@@ -86,7 +86,8 @@ void printTime(int t) {
 void FCFS(Process* processes, int n, int cs) {
 	//initialize
 	int time = 0;
-	CPU cpu; 
+	CPU cpu;
+	cpu.context = cs/2;
 	int alive = n; //counter for how many processes are still alive
 	
 	//start
@@ -96,14 +97,12 @@ void FCFS(Process* processes, int n, int cs) {
 	
 	//loop
 	while (alive > 0) {
-		time++;
-		
+		//printf("context: %d\n", cpu.context);
 		//process things
 		for (int i = 0; i < n; i++) {
 			Process* p = &(processes[i]);
 			
-			//check arrival time
-			//no bools should be true
+			//check arrival time / I/O time
 			if (time == p->nextArr) {
 				cpu.queue.push_back(*p);
 				p->inQueue = true;
@@ -124,50 +123,66 @@ void FCFS(Process* processes, int n, int cs) {
 			
 			//check wait time
 			if (p->inQueue) {
-				p->waitTime++;
 				if (cpu.current == NULL && *p == cpu.queue.front()) { //no current process, run next process in queue
-					p->inQueue = false;
-					cpu.queue.pop_front();
-					p->inCPU = true;
-					p->CPUTime = 0;
-					
-					printTime(time);
-					printf("Process %c started using the CPU for %dms burst ", p->ID, p->CPUBursts[p->step]);
-					printQueue(cpu);
+					//printf("context: %d\n", cpu.context);
+					if (cpu.context == 0) {
+						p->inQueue = false;
+						cpu.current = p;
+						cpu.queue.pop_front();
+						p->inCPU = true;
+						p->CPUTime = 0;
+						cpu.context = cs/2;
+						
+						printTime(time);
+						printf("Process %c started using the CPU for %dms burst ", p->ID, p->CPUBursts[p->step]);
+						printQueue(cpu);
+					}
+					else {
+						//printf("here\n");
+						cpu.context--;
+						continue;
+					}
 				}
+				p->waitTime++;
 			}
 			
 			//check CPU time
 			if (p->inCPU) {
-				p->CPUTime++;
 				if (p->CPUTime == p->CPUBursts[p->step]) { //CPU use done
-					cpu.current = NULL;
-					p->inCPU = false;
-					if (p->step == p->noBursts) {
+					//printf("context: %d\n", cpu.context);
+					if (p->step == p->noBursts-1) {
+						cpu.current = NULL;
+						p->inCPU = false;
+						p->inQueue = false;
+						p->inIO = false;
 						alive--;
 						printTime(time);
-						printf("Process %c terminated", p->ID);
+						printf("Process %c terminated ", p->ID);
 						printQueue(cpu);
+						continue;
 					}
-					else {
-						p->inIO = true;
-						int next = time + (p->IOBursts)[p->step] + (cs/2);
-						p->nextArr = next;
-						
-						printTime(time);
-						printf("Process %c completed a CPU burst; %d bursts to go ", p->ID, (p->noBursts)-(p->step)-1);
-						printQueue(cpu);
-						printTime(time);
-						printf("Process %c switching out of CPU; will block on I/O until time %dms ", p->ID, next);
-						printQueue(cpu);
-					}
-				}
-				else { //CPU still in use
 					
+					cpu.current = NULL;
+					p->inCPU = false;
+					p->inIO = true;
+					int next = time + (p->IOBursts)[p->step] + (cs/2); //context switch taken care of here
+					p->nextArr = next;
+					
+					printTime(time);
+					printf("Process %c completed a CPU burst; %d bursts to go ", p->ID, (p->noBursts)-(p->step)-1);
+					printQueue(cpu);
+					printTime(time);
+					printf("Process %c switching out of CPU; will block on I/O until time %dms ", p->ID, next);
+					printQueue(cpu);
 				}
+				p->CPUTime++;
 			}
 		}
+		
+		time++;
 	}
+	time--;
+	time += cs/2;
 	
 	//end
 	printTime(time);
