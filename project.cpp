@@ -87,7 +87,8 @@ void FCFS(Process* processes, int n, int cs) {
 	//initialize
 	int time = 0;
 	CPU cpu;
-	cpu.context = cs/2;
+	cpu.context = 0;
+	bool inSwitch = true; //true when CPU is ready to take another process
 	int alive = n; //counter for how many processes are still alive
 	
 	//start
@@ -96,10 +97,15 @@ void FCFS(Process* processes, int n, int cs) {
 	printQueue(cpu);
 	
 	//loop
-	while (alive > 0) {
+	while (alive > 0 || cpu.context > 0) {
 		//printf("context: %d\n", cpu.context);
+		if (cpu.context > 0) {
+			cpu.context--;
+		}
+		
 		//process things
 		for (int i = 0; i < n; i++) {
+			//printf("context: %d\n", cpu.context);
 			Process* p = &(processes[i]);
 			
 			//check arrival time / I/O time
@@ -124,6 +130,10 @@ void FCFS(Process* processes, int n, int cs) {
 			//check wait time
 			if (p->inQueue) {
 				if (cpu.current == NULL && *p == cpu.queue.front()) { //no current process, run next process in queue
+					if (inSwitch) {
+						cpu.context += cs/2;
+						inSwitch = false;
+					}
 					//printf("context: %d\n", cpu.context);
 					if (cpu.context == 0) {
 						p->inQueue = false;
@@ -131,17 +141,17 @@ void FCFS(Process* processes, int n, int cs) {
 						cpu.queue.pop_front();
 						p->inCPU = true;
 						p->CPUTime = 0;
-						cpu.context = cs/2;
+						inSwitch = true;
 						
 						printTime(time);
 						printf("Process %c started using the CPU for %dms burst ", p->ID, p->CPUBursts[p->step]);
 						printQueue(cpu);
-					}
+					}/*
 					else {
 						//printf("here\n");
 						cpu.context--;
 						continue;
-					}
+					}*/
 				}
 				p->waitTime++;
 			}
@@ -156,24 +166,32 @@ void FCFS(Process* processes, int n, int cs) {
 						p->inQueue = false;
 						p->inIO = false;
 						alive--;
+						cpu.context += cs/2;
 						printTime(time);
 						printf("Process %c terminated ", p->ID);
 						printQueue(cpu);
 						continue;
 					}
 					
-					cpu.current = NULL;
-					p->inCPU = false;
-					p->inIO = true;
-					int next = time + (p->IOBursts)[p->step] + (cs/2); //context switch taken care of here
-					p->nextArr = next;
+					if (cpu.context == 0) {
+						cpu.current = NULL;
+						p->inCPU = false;
+						p->inIO = true;
+						int next = time + (p->IOBursts)[p->step] + (cs/2);
+						p->nextArr = next;
+						cpu.context += cs/2;
 					
-					printTime(time);
-					printf("Process %c completed a CPU burst; %d bursts to go ", p->ID, (p->noBursts)-(p->step)-1);
-					printQueue(cpu);
-					printTime(time);
-					printf("Process %c switching out of CPU; will block on I/O until time %dms ", p->ID, next);
-					printQueue(cpu);
+						printTime(time);
+						printf("Process %c completed a CPU burst; %d bursts to go ", p->ID, (p->noBursts)-(p->step)-1);
+						printQueue(cpu);
+						printTime(time);
+						printf("Process %c switching out of CPU; will block on I/O until time %dms ", p->ID, next);
+						printQueue(cpu);
+					}
+					/*else {
+						cpu.context--;
+						continue;
+					}*/
 				}
 				p->CPUTime++;
 			}
@@ -182,7 +200,6 @@ void FCFS(Process* processes, int n, int cs) {
 		time++;
 	}
 	time--;
-	time += cs/2;
 	
 	//end
 	printTime(time);
