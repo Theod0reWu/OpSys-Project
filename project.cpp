@@ -13,14 +13,14 @@ class CPU {
 		int context = 0; //counts remaining time of context switch
 };
 
-void fetch(char** args, int& n, int& seed, double& lambda, int& bound, int& cs, int& alpha, int& slice) {
+void fetch(char** args, int& n, int& seed, double& lambda, int& bound, int& cs, double& alpha, int& slice) {
 	//use arguments as buffers
 	n = atoi(args[1]);
 	seed = atoi(args[2]);
 	lambda = strtod(args[3], nullptr);
 	bound = atoi(args[4]);
 	cs = atoi(args[5]);
-	alpha = atoi(args[6]);
+	alpha = strtod(args[6], nullptr);
 	slice = atoi(args[7]);
 }
 
@@ -211,8 +211,8 @@ int main(int argc, char** argv) {
 	//error handling
 	
 	//fetch args
-	int n = 0, seed = 0, bound = 0, cs = 0, alpha = 0, slice = 0;
-	double lambda = 0;
+	int n = 0, seed = 0, bound = 0, cs = 0, slice = 0;
+	double lambda = 0, alpha = 0;
 	fetch(argv, n, seed, lambda, bound, cs, alpha, slice);
 	//printf("%d\n", seed);
 	
