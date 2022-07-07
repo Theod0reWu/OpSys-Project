@@ -212,6 +212,16 @@ void FCFS(Process* processes, int n, int cs) {
 
 /***********************************************************/
 void SJF(Process * processes, int n, int cs, double alpha, double lambda){
+	//initialize
+	int time = 0;
+	CPU cpu;
+	cpu.context = 0;
+	int alive = n; //counter for how many processes are still alive
+
+	printTime(time);
+	printf("Simulator started for SJF ");
+	cpu.printQueue();
+
 	
 }
 
