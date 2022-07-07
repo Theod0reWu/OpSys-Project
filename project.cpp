@@ -3,14 +3,49 @@
 #include <unistd.h>
 #include <string.h>
 #include <math.h>
-#include "process.cpp"
-#include <deque>
+#include <queue>
+#include "process.h"
 
 class CPU {
+	private:
+		std::priority_queue<Process> queue; //queue of processes (wait state)
 	public:
 		Process* current = NULL; //currently running process
-		std::deque<Process> queue; //queue of processes (wait state)
 		int context = 0; //counts remaining time of context switch
+
+	void push_back(Process &p){
+		p.tau = 0;
+		queue.push(p);
+	}
+
+	void push(Process &p, int priority){
+		p.tau = priority;
+		queue.push(p);
+	}
+
+	void pop_front(){
+		return queue.pop();
+	}
+
+	const Process& top(){
+		return queue.top();
+	}
+
+	void printQueue() {
+		printf("[Q:");
+		bool empty = true;
+		std::priority_queue<Process> temp;
+		while (queue.size() > 0){
+			Process p = queue.top();
+			printf(" %c", p.ID);
+			empty = false;
+			queue.pop();
+			temp.push(p);
+		}
+		queue = temp;
+		if (empty) {printf(" empty]\n");}
+		else {printf("]\n");}
+	}
 };
 
 void fetch(char** args, int& n, int& seed, double& lambda, int& bound, int& cs, double& alpha, int& slice) {
@@ -24,59 +59,12 @@ void fetch(char** args, int& n, int& seed, double& lambda, int& bound, int& cs, 
 	slice = atoi(args[7]);
 }
 
-//assumes seed is set
-double next_exp(double lambda, int bound) {
-	while (true) {
-		double num = -log(drand48()) / lambda;
-		if (num < bound) {return num;}
-	}
-}
-
-Process* build(int n, int seed, double lambda, int bound) {
-	char id = 'A';
-	Process* processes = new Process[n];
-	srand48(seed);
-	for (int i = 0; i < n; i++) {
-		Process p;
-		
-		p.ID = id;
-		id++;
-		
-		p.arrival = int(floor(next_exp(lambda, bound)));
-		p.nextArr = p.arrival;
-		
-		int bursts = int(ceil(drand48()*100));
-		p.noBursts = bursts;
-		p.CPUBursts = new int[bursts];
-		p.IOBursts = new int[bursts-1];
-		for (int j = 0; j < bursts-1; j++) {
-			p.CPUBursts[j] = ceil(next_exp(lambda, bound));
-			p.IOBursts[j] = ceil(next_exp(lambda, bound))*10;
-		}
-		p.CPUBursts[bursts-1] = int(ceil(next_exp(lambda, bound)));
-		
-		processes[i] = p;
-	}
-	return processes;
-}
-
 //reset all process variables
 void resetAll(Process* p, int n) {
 	for (int i = 0; i < n; i++) {
 		//printf("here: %c\n", p[i].ID);
 		p[i].reset();
 	}
-}
-
-void printQueue(CPU c) {
-	printf("[Q:");
-	bool empty = true;
-	for (auto p = c.queue.begin(); p != c.queue.end(); p++) {
-		printf(" %c", (*p).ID);
-		empty = false;
-	}
-	if (empty) {printf(" empty]\n");}
-	else {printf("]\n");}
 }
 
 void printTime(int t) {
@@ -94,7 +82,7 @@ void FCFS(Process* processes, int n, int cs) {
 	//start
 	printTime(time);
 	printf("Simulator started for FCFS ");
-	printQueue(cpu);
+	cpu.printQueue();
 	
 	//loop
 	while (alive > 0 || cpu.context > 0) {
@@ -110,7 +98,7 @@ void FCFS(Process* processes, int n, int cs) {
 			
 			//check arrival time / I/O time
 			if (time == p->nextArr) {
-				cpu.queue.push_back(*p);
+				cpu.push_back(*p);
 				p->inQueue = true;
 				
 				if (p->inIO) {
@@ -118,18 +106,18 @@ void FCFS(Process* processes, int n, int cs) {
 					p->step++;
 					printTime(time);
 					printf("Process %c completed I/O; added to ready queue ", p->ID);
-					printQueue(cpu);
+					cpu.printQueue();
 				}
 				else {
 					printTime(time);
 					printf("Process %c arrived; added to ready queue ", p->ID);
-					printQueue(cpu);
+					cpu.printQueue();
 				}
 			}
 			
 			//check wait time
 			if (p->inQueue) {
-				if (cpu.current == NULL && *p == cpu.queue.front()) { //no current process, run next process in queue
+				if (cpu.current == NULL && *p == cpu.top()) { //no current process, run next process in queue
 					if (inSwitch) {
 						cpu.context += cs/2;
 						inSwitch = false;
@@ -138,14 +126,14 @@ void FCFS(Process* processes, int n, int cs) {
 					if (cpu.context == 0) {
 						p->inQueue = false;
 						cpu.current = p;
-						cpu.queue.pop_front();
+						cpu.pop_front();
 						p->inCPU = true;
 						p->CPUTime = 0;
 						inSwitch = true;
 						
 						printTime(time);
 						printf("Process %c started using the CPU for %dms burst ", p->ID, p->CPUBursts[p->step]);
-						printQueue(cpu);
+						cpu.printQueue();
 					}/*
 					else {
 						//printf("here\n");
@@ -160,7 +148,7 @@ void FCFS(Process* processes, int n, int cs) {
 			if (p->inCPU) {
 				if (p->CPUTime == p->CPUBursts[p->step]) { //CPU use done
 					//printf("context: %d\n", cpu.context);
-					if (p->step == p->noBursts-1) {
+					if (p->step == p->IOBursts.size()-1) {
 						cpu.current = NULL;
 						p->inCPU = false;
 						p->inQueue = false;
@@ -169,7 +157,7 @@ void FCFS(Process* processes, int n, int cs) {
 						cpu.context += cs/2;
 						printTime(time);
 						printf("Process %c terminated ", p->ID);
-						printQueue(cpu);
+						cpu.printQueue();
 						continue;
 					}
 					
@@ -182,11 +170,11 @@ void FCFS(Process* processes, int n, int cs) {
 						cpu.context += cs/2;
 					
 						printTime(time);
-						printf("Process %c completed a CPU burst; %d bursts to go ", p->ID, (p->noBursts)-(p->step)-1);
-						printQueue(cpu);
+						printf("Process %c completed a CPU burst; %ld bursts to go ", p->ID, (p->IOBursts.size())-(p->step)-1);
+						cpu.printQueue();
 						printTime(time);
 						printf("Process %c switching out of CPU; will block on I/O until time %dms ", p->ID, next);
-						printQueue(cpu);
+						cpu.printQueue();
 					}
 					/*else {
 						cpu.context--;
@@ -204,7 +192,7 @@ void FCFS(Process* processes, int n, int cs) {
 	//end
 	printTime(time);
 	printf("Simulator ended for FCFS ");
-	printQueue(cpu);
+	cpu.printQueue();
 }
 
 void SJF(Process * processes, int n, int cs, double alpha, double lambda){
@@ -213,6 +201,10 @@ void SJF(Process * processes, int n, int cs, double alpha, double lambda){
 
 int main(int argc, char** argv) {
 	//error handling
+	if (argc != 8){
+		fprintf(stderr, "Insufficient Arguments, please ensure there are 7 arguments of the right format\n");
+		return 1; 
+	}
 	
 	//fetch args
 	int n = 0, seed = 0, bound = 0, cs = 0, slice = 0;
@@ -228,9 +220,9 @@ int main(int argc, char** argv) {
 	//display processes
 	int tau_init = int(ceil(1/lambda));
 	for (int i = 0; i < n; i++) {
-		printf("Process %c: arrival time %dms; tau %dms; %d CPU bursts:\n", p[i].ID, p[i].arrival, tau_init, p[i].noBursts);
-		for (int j = 0; j < p[i].noBursts; j++) {
-			if (j != p[i].noBursts - 1) {
+		printf("Process %c: arrival time %dms; tau %dms; %ld CPU bursts:\n", p[i].ID, p[i].arrival, tau_init, p[i].CPUBursts.size());
+		for (int j = 0; j < p[i].CPUBursts.size(); j++) {
+			if (j != p[i].CPUBursts.size() - 1) {
 				printf("--> CPU burst %dms --> I/O burst %dms\n", p[i].CPUBursts[j], p[i].IOBursts[j]);
 			}
 			else {
@@ -255,9 +247,9 @@ int main(int argc, char** argv) {
 	resetAll(p, n);
 	
 	//cleanup
-	for (int i = 0; i < n; i++) {
-		delete[] p[i].CPUBursts;
-		delete[] p[i].IOBursts;
-	}
+	// for (int i = 0; i < n; i++) {
+	// 	delete[] p[i].CPUBursts;
+	// 	delete[] p[i].IOBursts;
+	// }
 	delete[] p;
 }
