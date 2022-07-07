@@ -86,14 +86,12 @@ void FCFS(Process* processes, int n, int cs) {
 	
 	//loop
 	while (alive > 0 || cpu.context > 0) {
-		//printf("context: %d\n", cpu.context);
 		if (cpu.context > 0) {
 			cpu.context--;
 		}
 		
 		//process things
 		for (int i = 0; i < n; i++) {
-			//printf("context: %d\n", cpu.context);
 			Process* p = &(processes[i]);
 			
 			//check arrival time / I/O time
@@ -122,7 +120,6 @@ void FCFS(Process* processes, int n, int cs) {
 						cpu.context += cs/2;
 						inSwitch = false;
 					}
-					//printf("context: %d\n", cpu.context);
 					if (cpu.context == 0) {
 						p->inQueue = false;
 						cpu.current = p;
@@ -134,12 +131,7 @@ void FCFS(Process* processes, int n, int cs) {
 						printTime(time);
 						printf("Process %c started using the CPU for %dms burst ", p->ID, p->CPUBursts[p->step]);
 						cpu.printQueue();
-					}/*
-					else {
-						//printf("here\n");
-						cpu.context--;
-						continue;
-					}*/
+					}
 				}
 				p->waitTime++;
 			}
@@ -147,7 +139,6 @@ void FCFS(Process* processes, int n, int cs) {
 			//check CPU time
 			if (p->inCPU) {
 				if (p->CPUTime == p->CPUBursts[p->step]) { //CPU use done
-					//printf("context: %d\n", cpu.context);
 					if (p->step == int(p->CPUBursts.size()-1)) {
 						cpu.current = NULL;
 						p->inCPU = false;
@@ -176,10 +167,6 @@ void FCFS(Process* processes, int n, int cs) {
 						printf("Process %c switching out of CPU; will block on I/O until time %dms ", p->ID, next);
 						cpu.printQueue();
 					}
-					/*else {
-						cpu.context--;
-						continue;
-					}*/
 				}
 				p->CPUTime++;
 			}
