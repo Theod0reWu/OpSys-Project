@@ -286,7 +286,12 @@ void RR(Process* processes, int n, int cs, int slice) {
 						inSwitch = true;
 						
 						printTime(time);
-						printf("Process %c started using the CPU for %dms burst ", p->ID, p->CPUBursts[p->step]);
+						if (p->remaining < (p->CPUBursts)[p->step]) {
+							printf("Process %c started using the CPU for remaining %dms of %dms burst ", p->ID, p->remaining, p->CPUBursts[p->step]);
+						}
+						else {
+							printf("Process %c started using the CPU for %dms burst ", p->ID, p->CPUBursts[p->step]);
+						}
 						cpu.printQueue();
 					}
 				}
@@ -399,7 +404,7 @@ int main(int argc, char** argv) {
 	
 	//do FCFS
 	resetAll(p, n);
-	FCFS(p, n, cs);
+	//FCFS(p, n, cs);
 	printf("\n");
 	
 	//do SJF
@@ -414,7 +419,7 @@ int main(int argc, char** argv) {
 	
 	//do RR
 	resetAll(p, n);
-	//RR(p, n, cs, slice);
+	RR(p, n, cs, slice);
 	
 	//cleanup
 	// for (int i = 0; i < n; i++) {
