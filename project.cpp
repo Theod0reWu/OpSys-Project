@@ -46,6 +46,10 @@ class CPU {
 		if (empty) {printf(" empty]\n");}
 		else {printf("]\n");}
 	}
+	
+	bool empty() {
+		return queue.empty();
+	}
 };
 
 void fetch(char** args, int& n, int& seed, double& lambda, int& bound, int& cs, double& alpha, int& slice) {
@@ -71,6 +75,7 @@ void printTime(int t) {
 	printf("time %dms: ", t);
 }
 
+/***********************************************************/
 void FCFS(Process* processes, int n, int cs) {
 	//initialize
 	int time = 0;
@@ -182,8 +187,145 @@ void FCFS(Process* processes, int n, int cs) {
 	cpu.printQueue();
 }
 
+/***********************************************************/
 void SJF(Process * processes, int n, int cs, double alpha, double lambda){
 	
+}
+
+/***********************************************************/
+
+
+/***********************************************************/
+void RR(Process* processes, int n, int cs, int slice) {
+	//start
+	int time = 0;
+	CPU cpu;
+	cpu.context = 0;
+	bool inSwitch = true;
+	int alive = n;
+	
+	printTime(time);
+	printf("Simulator started for RR with time slice %dms ", slice);
+	cpu.printQueue();
+	
+	//loop
+	while (alive > 0 || cpu.context > 0) {
+		if (cpu.context > 0) {
+			cpu.context--;
+		}
+		
+		for (int i = 0; i < n; i++) {
+			Process* p = &(processes[i]);
+			
+			if (time == p->nextArr) {
+				cpu.push_back(*p);
+				p->inQueue = true;
+				
+				if (p->inIO) {
+					p->inIO = false;
+					p->step++;
+					printTime(time);
+					printf("Process %c completed I/O; added to ready queue ", p->ID);
+					cpu.printQueue();
+				}
+				else {
+					printTime(time);
+					printf("Process %c arrived; added to ready queue ", p->ID);
+					cpu.printQueue();
+				}
+				
+				p->remaining = p->CPUBursts[p->step]; //first time in queue; remaining time is full time
+			}
+			
+			if (p->inQueue) {
+				if (cpu.current == NULL && *p == cpu.top()) {
+					if (inSwitch) {
+						cpu.context += cs/2;
+						inSwitch = false;
+					}
+					if (cpu.context == 0) {
+						p->inQueue = false;
+						cpu.current = p;
+						cpu.pop_front();
+						p->inCPU = true;
+						p->CPUTime = 0;
+						inSwitch = true;
+						
+						printTime(time);
+						printf("Process %c started using the CPU for %dms burst ", p->ID, p->CPUBursts[p->step]);
+						cpu.printQueue();
+					}
+				}
+				p->waitTime++;
+			}
+			
+			if (p->inCPU) {
+				if ((p->CPUTime != 0 && p->CPUTime % slice == 0) || p->CPUTime == p->remaining) {//CPU time reaches a multiple of the slice or is done
+					if (p->CPUTime == p->remaining) { //CPU burst done
+						if (p->step == int(p->CPUBursts.size()-1)) { //termination
+							cpu.current = NULL;
+							p->inCPU = false;
+							p->inQueue = false;
+							p->inIO = false;
+							alive--;
+							cpu.context += cs/2;
+							printTime(time);
+							printf("Process %c terminated ", p->ID);
+							cpu.printQueue();
+							continue;
+						}
+						
+						if (cpu.context == 0) { //send to I/O
+							cpu.current = NULL;
+							p->inCPU = false;
+							p->inIO = true;
+							int next = time + (p->IOBursts)[p->step] + (cs/2);
+							p->nextArr = next;
+							cpu.context += cs/2;
+						
+							printTime(time);
+							printf("Process %c completed a CPU burst; %ld bursts to go ", p->ID, (p->CPUBursts.size())-(p->step)-1);
+							cpu.printQueue();
+							printTime(time);
+							printf("Process %c switching out of CPU; will block on I/O until time %dms ", p->ID, next);
+							cpu.printQueue();
+							continue;
+						}
+					}
+					else { //time slice ran out
+						p->remaining -= p->CPUTime;
+						p->CPUTime = 0;
+						if (cpu.empty()) { //no preemption
+							printTime(time);
+							printf("Time slice expired; no preemption because ready queue is empty ");
+							cpu.printQueue();
+						}
+						else { //preempt here
+							printTime(time);
+							printf("Time slice expired; process %c preempted with %dms remaining ", p->ID, p->remaining);
+							cpu.printQueue();
+							
+							cpu.current = NULL;
+							p->inCPU = false;
+							p->inQueue = true;
+							cpu.push_back(*p);
+							cpu.context += cs/2;
+							continue;
+						}
+					}
+				}
+				p->CPUTime++;
+			}
+		}
+		
+		time++;
+	}
+	time--;
+	
+	//end
+	printTime(time);
+	printf("Simulator ended for RR ");
+	cpu.printQueue();
 }
 
 int main(int argc, char** argv) {
@@ -224,15 +366,21 @@ int main(int argc, char** argv) {
 	//do FCFS
 	resetAll(p, n);
 	FCFS(p, n, cs);
+	printf("\n");
 	
 	//do SJF
 	resetAll(p, n);
 	
+	printf("\n");
+	
 	//do SRT
 	resetAll(p, n);
 	
+	printf("\n");
+	
 	//do RR
 	resetAll(p, n);
+	RR(p, n, cs, slice);
 	
 	//cleanup
 	// for (int i = 0; i < n; i++) {
