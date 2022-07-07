@@ -170,7 +170,7 @@ void FCFS(Process* processes, int n, int cs) {
 						cpu.context += cs/2;
 					
 						printTime(time);
-						printf("Process %c completed a CPU burst; %ld bursts to go ", p->ID, (p->IOBursts.size())-(p->step)-1);
+						printf("Process %c completed a CPU burst; %ld bursts to go ", p->ID, (p->CPUBursts.size())-(p->step)-1);
 						cpu.printQueue();
 						printTime(time);
 						printf("Process %c switching out of CPU; will block on I/O until time %dms ", p->ID, next);
