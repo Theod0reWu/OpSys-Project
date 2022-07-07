@@ -148,7 +148,7 @@ void FCFS(Process* processes, int n, int cs) {
 			if (p->inCPU) {
 				if (p->CPUTime == p->CPUBursts[p->step]) { //CPU use done
 					//printf("context: %d\n", cpu.context);
-					if (p->step == p->IOBursts.size()-1) {
+					if (p->step == p->CPUBursts.size()-1) {
 						cpu.current = NULL;
 						p->inCPU = false;
 						p->inQueue = false;
