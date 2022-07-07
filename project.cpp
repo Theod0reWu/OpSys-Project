@@ -201,6 +201,7 @@ int main(int argc, char** argv) {
 	
 	//validation error handling
 	
+	
 	//build processes
 	Process* p = build(n, seed, lambda, bound);
 	
