@@ -15,6 +15,7 @@ class Process {
 		bool inIO = false; //true if in I/O, false otherwise
 
 		int tau ;
+		int remaining; //counts 
 
 		Process();
 		Process(char ID, int arrival, int tau = 0);
