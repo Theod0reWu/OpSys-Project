@@ -207,6 +207,10 @@ void FCFS(Process* processes, int n, int cs) {
 	printQueue(cpu);
 }
 
+void SJF(Process * processes, int n, int cs, double alpha, double lambda){
+	
+}
+
 int main(int argc, char** argv) {
 	//error handling
 	
