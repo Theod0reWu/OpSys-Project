@@ -148,7 +148,7 @@ void FCFS(Process* processes, int n, int cs) {
 			if (p->inCPU) {
 				if (p->CPUTime == p->CPUBursts[p->step]) { //CPU use done
 					//printf("context: %d\n", cpu.context);
-					if (p->step == p->CPUBursts.size()-1) {
+					if (p->step == int(p->CPUBursts.size()-1)) {
 						cpu.current = NULL;
 						p->inCPU = false;
 						p->inQueue = false;
@@ -221,8 +221,8 @@ int main(int argc, char** argv) {
 	int tau_init = int(ceil(1/lambda));
 	for (int i = 0; i < n; i++) {
 		printf("Process %c: arrival time %dms; tau %dms; %ld CPU bursts:\n", p[i].ID, p[i].arrival, tau_init, p[i].CPUBursts.size());
-		for (int j = 0; j < p[i].CPUBursts.size(); j++) {
-			if (j != p[i].CPUBursts.size() - 1) {
+		for (int j = 0; j < int(p[i].CPUBursts.size()); j++) {
+			if (j != int(p[i].CPUBursts.size() - 1)) {
 				printf("--> CPU burst %dms --> I/O burst %dms\n", p[i].CPUBursts[j], p[i].IOBursts[j]);
 			}
 			else {
