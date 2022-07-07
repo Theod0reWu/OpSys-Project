@@ -4,45 +4,62 @@
 #include <string.h>
 #include <math.h>
 #include <queue>
+#include <deque>
 #include "process.h"
 
 class CPU {
 	private:
-		std::priority_queue<Process> queue; //queue of processes (wait state)
+		std::deque<Process> queue; //queue of processes
+		std::priority_queue<Process> pqueue; //priority queue of processes (wait state)
 	public:
 		Process* current = NULL; //currently running process
 		int context = 0; //counts remaining time of context switch
 
 	void push_back(Process &p){
 		p.tau = 0;
-		queue.push(p);
+		queue.push_back(p);
 	}
 
 	void push(Process &p, int priority){
 		p.tau = priority;
-		queue.push(p);
+		pqueue.push(p);
 	}
 
 	void pop_front(){
-		return queue.pop();
+		return queue.pop_front();
 	}
-
+	
+	const Process& front() {
+		return queue.front();
+	}
+	
 	const Process& top(){
-		return queue.top();
+		return pqueue.top();
 	}
 
 	void printQueue() {
 		printf("[Q:");
 		bool empty = true;
+		for (auto i = queue.begin(); i != queue.end(); i++) {
+			printf(" %c", (*i).ID);
+			empty = false;
+		}
+		if (empty) {printf(" empty]\n");}
+		else {printf("]\n");}
+	}
+
+	void printPQueue() {
+		printf("[Q:");
+		bool empty = true;
 		std::priority_queue<Process> temp;
-		while (queue.size() > 0){
-			Process p = queue.top();
+		while (pqueue.size() > 0){
+			Process p = pqueue.top();
 			printf(" %c", p.ID);
 			empty = false;
-			queue.pop();
+			pqueue.pop();
 			temp.push(p);
 		}
-		queue = temp;
+		pqueue = temp;
 		if (empty) {printf(" empty]\n");}
 		else {printf("]\n");}
 	}
@@ -91,18 +108,45 @@ void FCFS(Process* processes, int n, int cs) {
 	
 	//loop
 	while (alive > 0 || cpu.context > 0) {
+		printf("context: %d, switch = %d\n", cpu.context, inSwitch);
 		if (cpu.context > 0) {
 			cpu.context--;
 		}
+		if (cpu.context == 0) {inSwitch = true;}
 		
 		//process things
 		for (int i = 0; i < n; i++) {
 			Process* p = &(processes[i]);
-			
+			//check wait time
+			if (p->inQueue) {
+				if (cpu.current == NULL && *p == cpu.front()) { //no current process, run next process in queue
+					/*if (inSwitch) {
+						cpu.context += cs/2;
+						inSwitch = false;
+					}*/
+					if (cpu.context == 0) {
+						p->inQueue = false;
+						cpu.current = p;
+						cpu.pop_front();
+						p->inCPU = true;
+						p->CPUTime = 0;
+						//inSwitch = true;
+						
+						printTime(time);
+						printf("Process %c started using the CPU for %dms burst ", p->ID, p->CPUBursts[p->step]);
+						cpu.printQueue();
+					}
+				}
+				p->waitTime++;
+			}
 			//check arrival time / I/O time
 			if (time == p->nextArr) {
 				cpu.push_back(*p);
 				p->inQueue = true;
+				if (cpu.current == NULL && *p == cpu.front() && inSwitch) {
+					cpu.context += cs/2;
+					inSwitch = false;
+				}
 				
 				if (p->inIO) {
 					p->inIO = false;
@@ -118,29 +162,6 @@ void FCFS(Process* processes, int n, int cs) {
 				}
 			}
 			
-			//check wait time
-			if (p->inQueue) {
-				if (cpu.current == NULL && *p == cpu.top()) { //no current process, run next process in queue
-					if (inSwitch) {
-						cpu.context += cs/2;
-						inSwitch = false;
-					}
-					if (cpu.context == 0) {
-						p->inQueue = false;
-						cpu.current = p;
-						cpu.pop_front();
-						p->inCPU = true;
-						p->CPUTime = 0;
-						inSwitch = true;
-						
-						printTime(time);
-						printf("Process %c started using the CPU for %dms burst ", p->ID, p->CPUBursts[p->step]);
-						cpu.printQueue();
-					}
-				}
-				p->waitTime++;
-			}
-			
 			//check CPU time
 			if (p->inCPU) {
 				if (p->CPUTime == p->CPUBursts[p->step]) { //CPU use done
@@ -151,6 +172,7 @@ void FCFS(Process* processes, int n, int cs) {
 						p->inIO = false;
 						alive--;
 						cpu.context += cs/2;
+						inSwitch = false;
 						printTime(time);
 						printf("Process %c terminated ", p->ID);
 						cpu.printQueue();
@@ -164,6 +186,7 @@ void FCFS(Process* processes, int n, int cs) {
 						int next = time + (p->IOBursts)[p->step] + (cs/2);
 						p->nextArr = next;
 						cpu.context += cs/2;
+						inSwitch = false;
 					
 						printTime(time);
 						printf("Process %c completed a CPU burst; %ld bursts to go ", p->ID, (p->CPUBursts.size())-(p->step)-1);
@@ -238,7 +261,7 @@ void RR(Process* processes, int n, int cs, int slice) {
 			}
 			
 			if (p->inQueue) {
-				if (cpu.current == NULL && *p == cpu.top()) {
+				if (cpu.current == NULL && *p == cpu.front()) {
 					if (inSwitch) {
 						cpu.context += cs/2;
 						inSwitch = false;
@@ -380,7 +403,7 @@ int main(int argc, char** argv) {
 	
 	//do RR
 	resetAll(p, n);
-	RR(p, n, cs, slice);
+	//RR(p, n, cs, slice);
 	
 	//cleanup
 	// for (int i = 0; i < n; i++) {
