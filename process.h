@@ -17,6 +17,7 @@ class Process {
 		int tau ;
 		int remaining; //counts remaining time on current CPU burst
 		bool swap = true; //true if swapping into CPU, false if leaving CPU
+		bool preempt = false; //true if current swap is a preemption
 
 		Process();
 		Process(char ID, int arrival, int tau = 0);

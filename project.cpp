@@ -238,7 +238,6 @@ void RR(Process* processes, int n, int cs, int slice) {
 	int time = 0;
 	CPU cpu;
 	cpu.context = 0;
-	bool inSwitch = true;
 	int alive = n;
 	
 	printTime(time);
@@ -247,8 +246,36 @@ void RR(Process* processes, int n, int cs, int slice) {
 	
 	//loop
 	while (alive > 0 || cpu.context > 0) {
+		assert(cpu.current == NULL || cpu.switching == NULL);
+		
 		if (cpu.context > 0) {
 			cpu.context--;
+		}
+		if (cpu.context == 0 && cpu.switching != NULL) {
+			Process* a = cpu.switching;
+			if (a->swap) { //switching into CPU
+				a->inCPU = true;
+				cpu.current = a;
+				cpu.switching = NULL;
+				
+				printTime(time);
+				if (a->remaining < (a->CPUBursts)[a->step]) {
+					printf("Process %c started using the CPU for remaining %dms of %dms burst ", a->ID, a->remaining, a->CPUBursts[a->step]);
+				}
+				else {
+					printf("Process %c started using the CPU for %dms burst ", a->ID, a->CPUBursts[a->step]);
+				}
+				cpu.printQueue();
+			}
+			else if (a->preempt) { //preemption
+				a->inQueue = true;
+				cpu.push_back(*a);
+				cpu.switching = NULL;
+			}
+			else { //switching out to IO
+				a->inIO = true;
+				cpu.switching = NULL;
+			}
 		}
 		
 		for (int i = 0; i < n; i++) {
@@ -275,84 +302,68 @@ void RR(Process* processes, int n, int cs, int slice) {
 			}
 			
 			if (p->inQueue) {
-				if (cpu.current == NULL && *p == cpu.front()) {
-					if (inSwitch) {
-						cpu.context += cs/2;
-						inSwitch = false;
-					}
-					if (cpu.context == 0) {
-						p->inQueue = false;
-						cpu.current = p;
-						cpu.pop_front();
-						p->inCPU = true;
-						p->CPUTime = 0;
-						inSwitch = true;
-						
-						printTime(time);
-						if (p->remaining < (p->CPUBursts)[p->step]) {
-							printf("Process %c started using the CPU for remaining %dms of %dms burst ", p->ID, p->remaining, p->CPUBursts[p->step]);
-						}
-						else {
-							printf("Process %c started using the CPU for %dms burst ", p->ID, p->CPUBursts[p->step]);
-						}
-						cpu.printQueue();
-					}
+				if (cpu.current == NULL && cpu.switching == NULL && *p == cpu.front()) {
+					p->inQueue = false;
+					p->swap = true;
+					cpu.switching = p;
+					cpu.context += cs/2;
+					p->CPUTime = 0;
+					cpu.pop_front();
 				}
 				p->waitTime++;
 			}
 			
 			if (p->inCPU) {
 				if ((p->CPUTime != 0 && p->CPUTime % slice == 0) || p->CPUTime == p->remaining) {//CPU time reaches a multiple of the slice or is done
+					if (p->CPUTime == p->remaining || !cpu.empty()) { //if not a skipped preemption
+						cpu.current = NULL;
+						cpu.switching = p;
+						cpu.context += cs/2;
+						p->swap = false;
+						p->inCPU = false;
+					}
+					
 					if (p->CPUTime == p->remaining) { //CPU burst done
+						p->preempt = false;
+						
 						if (p->step == int(p->CPUBursts.size()-1)) { //termination
-							cpu.current = NULL;
-							p->inCPU = false;
 							p->inQueue = false;
 							p->inIO = false;
 							alive--;
-							cpu.context += cs/2;
+							
 							printTime(time);
 							printf("Process %c terminated ", p->ID);
 							cpu.printQueue();
 							continue;
 						}
 						
-						if (cpu.context == 0) { //send to I/O
-							cpu.current = NULL;
-							p->inCPU = false;
-							p->inIO = true;
-							int next = time + (p->IOBursts)[p->step] + (cs/2);
-							p->nextArr = next;
-							cpu.context += cs/2;
-						
-							printTime(time);
-							printf("Process %c completed a CPU burst; %ld bursts to go ", p->ID, (p->CPUBursts.size())-(p->step)-1);
-							cpu.printQueue();
-							printTime(time);
-							printf("Process %c switching out of CPU; will block on I/O until time %dms ", p->ID, next);
-							cpu.printQueue();
-							continue;
-						}
+						//send to I/O
+						int next = time + (p->IOBursts)[p->step] + (cs/2);
+						p->nextArr = next;
+					
+						printTime(time);
+						printf("Process %c completed a CPU burst; %ld bursts to go ", p->ID, (p->CPUBursts.size())-(p->step)-1);
+						cpu.printQueue();
+						printTime(time);
+						printf("Process %c switching out of CPU; will block on I/O until time %dms ", p->ID, next);
+						cpu.printQueue();
+						continue;
 					}
 					else { //time slice ran out
 						p->remaining -= p->CPUTime;
 						p->CPUTime = 0;
 						if (cpu.empty()) { //no preemption
+							p->preempt = false;
 							printTime(time);
 							printf("Time slice expired; no preemption because ready queue is empty ");
 							cpu.printQueue();
 						}
 						else { //preempt here
+							p->preempt = true;
+						
 							printTime(time);
 							printf("Time slice expired; process %c preempted with %dms remaining ", p->ID, p->remaining);
 							cpu.printQueue();
-							
-							cpu.current = NULL;
-							p->inCPU = false;
-							p->inQueue = true;
-							cpu.push_back(*p);
-							cpu.context += cs/2;
-							continue;
 						}
 					}
 				}
@@ -407,8 +418,8 @@ int main(int argc, char** argv) {
 	
 	//do FCFS
 	resetAll(p, n);
-	FCFS(p, n, cs);
-	printf("\n");
+	//FCFS(p, n, cs);
+	//printf("\n");
 	
 	//do SJF
 	resetAll(p, n);
@@ -422,7 +433,7 @@ int main(int argc, char** argv) {
 	
 	//do RR
 	resetAll(p, n);
-	//RR(p, n, cs, slice);
+	RR(p, n, cs, slice);
 	
 	//cleanup
 	// for (int i = 0; i < n; i++) {
