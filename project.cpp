@@ -13,6 +13,7 @@ class CPU {
 		std::priority_queue<Process> pqueue; //priority queue of processes (wait state)
 	public:
 		Process* current = NULL; //currently running process
+		Process* switching = NULL; //process currently being swapped in/out
 		int context = 0; //counts remaining time of context switch
 
 	void push_back(Process &p){
