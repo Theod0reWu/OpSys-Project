@@ -14,7 +14,7 @@ class Process {
 		bool inQueue = false; //true if in queue, false otherwise
 		bool inIO = false; //true if in I/O, false otherwise
 
-		int tau ;
+		int tau;
 		int remaining; //counts remaining time on current CPU burst
 		bool swap = true; //true if swapping into CPU, false if leaving CPU
 		bool preempt = false; //true if current swap is a preemption
@@ -24,7 +24,9 @@ class Process {
 		bool operator<(const Process& b) const;
 		void reset();
 		bool operator==(Process const& other) const;
-			
+
+		int getCurrentCPUBurst() const;
+		int getCurrentIOBurst() const;
 };
 
 double next_exp(double lambda, int bound);

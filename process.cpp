@@ -38,7 +38,13 @@ bool Process::operator==(Process const& other) const {
 	return this->ID == other.ID;
 }
 
+int Process::getCurrentCPUBurst() const {
+	return CPUBursts[step];
+}
 
+int Process::getCurrentIOBurst() const {
+	return IOBursts[step];
+}
 
 //assumes seed is set
 double next_exp(double lambda, int bound) {

@@ -6,12 +6,13 @@
 #include <assert.h>
 #include <queue>
 #include <deque>
+#include <iostream>
 #include "process.h"
 
 class CPU {
 	private:
 		std::deque<Process> queue; //queue of processes
-		std::priority_queue<Process> pqueue; //priority queue of processes (wait state)
+		std::priority_queue<Process*> pqueue; //priority queue of processes (wait state)
 	public:
 		Process* current = NULL; //currently running process
 		Process* switching = NULL; //process currently being swapped in/out
@@ -22,20 +23,28 @@ class CPU {
 		queue.push_back(p);
 	}
 
-	void push(Process &p, int priority){
-		p.tau = priority;
+	void push(Process* p, int priority){
+		p->tau = priority;
+		pqueue.push(p);
+	}
+
+	void push(Process* p) {
 		pqueue.push(p);
 	}
 
 	void pop_front(){
 		return queue.pop_front();
 	}
+
+	void pop(){
+		return pqueue.pop();
+	}
 	
 	const Process& front() {
 		return queue.front();
 	}
 	
-	const Process& top(){
+	Process * top(){
 		return pqueue.top();
 	}
 
@@ -53,10 +62,10 @@ class CPU {
 	void printPQueue() {
 		printf("[Q:");
 		bool empty = true;
-		std::priority_queue<Process> temp;
+		std::priority_queue<Process*> temp;
 		while (pqueue.size() > 0){
-			Process p = pqueue.top();
-			printf(" %c", p.ID);
+			Process * p = pqueue.top();
+			printf(" %c", p->ID);
 			empty = false;
 			pqueue.pop();
 			temp.push(p);
@@ -68,6 +77,10 @@ class CPU {
 	
 	bool empty() {
 		return queue.empty();
+	}
+
+	bool size() {
+		return pqueue.size();
 	}
 };
 
@@ -96,6 +109,7 @@ void printTime(int t) {
 
 /***********************************************************/
 void FCFS(Process* processes, int n, int cs) {
+	std::cout << processes << std::endl;
 	//initialize
 	int time = 0;
 	CPU cpu;
@@ -220,13 +234,122 @@ void SJF(Process * processes, int n, int cs, double alpha, double lambda){
 	int time = 0;
 	CPU cpu;
 	cpu.context = 0;
-	//int alive = n; //counter for how many processes are still alive
+	bool context_switching = false;
+	int alive = n; //counter for how many processes are still alive
+	int tau_init = int(ceil(1/lambda));
 
 	printTime(time);
 	printf("Simulator started for SJF ");
-	cpu.printQueue();
+	cpu.printPQueue();
+/*
+If different types of events occur at the same time, simulate these events using the following order:
+(a) CPU burst completion; (b) process starts using the CPU; (c) I/O burst completions (i.e., back
+to the ready queue); and (d) new process arrivals.
 
-	
+*/
+	while (alive > 0){
+		if (cpu.current != NULL && cpu.current->remaining > 0){
+			//cpu burst moving along
+			cpu.current->remaining--;
+		} else if (cpu.current != NULL) {
+/*
+time 242ms: Process A (tau 100ms) completed a CPU burst; 13 bursts to go [Q: empty]
+time 242ms: Recalculated tau for process A: old tau 100ms; new tau 154ms [Q: empty]
+time 242ms: Process A switching out of CPU; will block on I/O until time 584ms [Q: empty]
+*/
+			//cpu burst completion and context switch if possible
+			Process * current = cpu.current;
+			cpu.current = NULL;
+			current->inCPU = false;
+			current->inQueue = false;
+			//printf("%d < %d \n", current->step, current->CPUBursts.size());
+			if (0 < current->CPUBursts.size() - current->step - 1){
+				printTime(time);
+				printf("Process %c (tau %dms) completed a CPU burst; %ld bursts to go ", current->ID, current->tau, current->CPUBursts.size() - current->step - 1);
+				cpu.printPQueue();
+
+				int old_tau = current->tau;
+				current->tau = ceil(alpha * current->getCurrentCPUBurst() + (1-alpha) * old_tau);
+
+				printTime(time);
+				printf("Recalculated tau for process %c: old tau %dms; new tau %dms ", current->ID, old_tau, current->tau);
+				cpu.printPQueue();
+
+				//added to io Burst
+				current->inIO = true;
+				current->remaining = current->getCurrentIOBurst() + cs / 2; //will subtract later for things in IO
+
+				printTime(time);
+				printf("Process %c switching out of CPU; will block on I/O until time %dms ", current->ID, time + cs / 2 + current->getCurrentIOBurst());
+				cpu.printPQueue();
+
+			} else {
+
+				printTime(time);
+				printf("Process %c terminated ", current->ID);
+				cpu.printPQueue();
+				alive--;
+			}
+
+			cpu.context = cs; //time for the process to leave the cpu and for a new one to enter
+		}
+
+		//process starts using the cpu
+		if (cpu.current == NULL){
+			//either get process from ready queue or do nothing
+			if (cpu.context > 0) {
+				cpu.context--;
+			} else if (cpu.context == 0 && cpu.size() > 0) {
+				//move new process in
+				cpu.current = cpu.top();
+				cpu.pop();
+				printTime(time);
+				printf("Process %c (tau %dms) started using the CPU for %dms burst ", cpu.current->ID, cpu.current->tau, cpu.current->getCurrentCPUBurst());
+				cpu.printPQueue();
+				//std::cout << cpu.current << std::endl;
+				cpu.current->remaining = cpu.current->getCurrentCPUBurst() - 1;
+			} 
+		} 
+
+		//IOburst completions
+		for (int i = 0; i < n; ++i){
+			if (processes[i].inIO){
+				if (processes[i].remaining == 0){
+					processes[i].inIO = false;
+					processes[i].inQueue = true;
+					processes[i].step += 1;
+					cpu.push(processes+i);
+					if (cpu.size() == 1){
+						cpu.context += cs / 2 - 1;
+					}
+
+					printTime(time);
+					printf("Process %c (tau %dms) completed I/O; added to ready queue ", processes[i].ID, processes[i].tau);
+					cpu.printPQueue();
+				} else {
+					processes[i].remaining--;
+				}
+			}
+		}
+
+		
+		//new process arrivals
+		for (int i = 0; i < n; ++i){
+			if (processes[i].arrival == time){
+				cpu.push(processes+i, tau_init);
+				processes[i].inQueue = true;
+				printTime(time);
+				printf("Process %c (tau %dms) arrived; added to ready queue ", processes[i].ID, tau_init);
+				cpu.printPQueue();
+				if (cpu.size() == 1){
+					cpu.context = cs / 2 - 1;
+				}
+			}
+		}
+
+		++time;
+		//printf("%d %d %p \n", time, cpu.context, cpu.current);
+	}
 }
 
 /***********************************************************/
@@ -399,21 +522,21 @@ int main(int argc, char** argv) {
 	
 	//build processes
 	Process* p = build(n, seed, lambda, bound);
-	/*
+	
 	//display processes
-	int tau_init = int(ceil(1/lambda));
-	for (int i = 0; i < n; i++) {
-		printf("Process %c: arrival time %dms; tau %dms; %ld CPU bursts:\n", p[i].ID, p[i].arrival, tau_init, p[i].CPUBursts.size());
-		for (int j = 0; j < int(p[i].CPUBursts.size()); j++) {
-			if (j != int(p[i].CPUBursts.size() - 1)) {
-				printf("--> CPU burst %dms --> I/O burst %dms\n", p[i].CPUBursts[j], p[i].IOBursts[j]);
-			}
-			else {
-				printf("--> CPU burst %dms\n", p[i].CPUBursts[j]);
-			}
-		}
-	}
-	*/
+	// int tau_init = int(ceil(1/lambda));
+	// for (int i = 0; i < n; i++) {
+	// 	printf("Process %c: arrival time %dms; tau %dms; %ld CPU bursts:\n", p[i].ID, p[i].arrival, tau_init, p[i].CPUBursts.size());
+	// 	for (int j = 0; j < int(p[i].CPUBursts.size()); j++) {
+	// 		if (j != int(p[i].CPUBursts.size() - 1)) {
+	// 			printf("--> CPU burst %dms --> I/O burst %dms\n", p[i].CPUBursts[j], p[i].IOBursts[j]);
+	// 		}
+	// 		else {
+	// 			printf("--> CPU burst %dms\n", p[i].CPUBursts[j]);
+	// 		}
+	// 	}
+	// }
+	
 	//printf("\n");
 	
 	//do FCFS
@@ -423,6 +546,7 @@ int main(int argc, char** argv) {
 	
 	//do SJF
 	resetAll(p, n);
+	SJF(p, n, cs, alpha, lambda);
 	
 	//printf("\n");
 	
@@ -433,7 +557,7 @@ int main(int argc, char** argv) {
 	
 	//do RR
 	resetAll(p, n);
-	RR(p, n, cs, slice);
+	//RR(p, n, cs, slice);
 	
 	//cleanup
 	// for (int i = 0; i < n; i++) {
