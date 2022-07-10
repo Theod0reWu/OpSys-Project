@@ -12,7 +12,7 @@
 class CPU {
 	private:
 		std::deque<Process> queue; //queue of processes
-		std::priority_queue<Process*> pqueue; //priority queue of processes (wait state)
+		std::priority_queue<Process*, std::vector<Process*>, Compare> pqueue; //priority queue of processes (wait state)
 	public:
 		Process* current = NULL; //currently running process
 		Process* switching = NULL; //process currently being swapped in/out
@@ -62,7 +62,7 @@ class CPU {
 	void printPQueue() {
 		printf("[Q:");
 		bool empty = true;
-		std::priority_queue<Process*> temp;
+		std::priority_queue<Process*, std::vector<Process*>, Compare> temp;
 		while (pqueue.size() > 0){
 			Process * p = pqueue.top();
 			printf(" %c", p->ID);
@@ -248,10 +248,10 @@ to the ready queue); and (d) new process arrivals.
 
 */
 	while (alive > 0){
-		if (cpu.current != NULL && cpu.current->remaining > 0){
+		if (cpu.current != NULL && cpu.current->remaining > 0 && cpu.context == 0){
 			//cpu burst moving along
 			cpu.current->remaining--;
-		} else if (cpu.current != NULL) {
+		} else if (cpu.current != NULL && cpu.context == 0) {
 /*
 time 242ms: Process A (tau 100ms) completed a CPU burst; 13 bursts to go [Q: empty]
 time 242ms: Recalculated tau for process A: old tau 100ms; new tau 154ms [Q: empty]
@@ -264,8 +264,12 @@ time 242ms: Process A switching out of CPU; will block on I/O until time 584ms [
 			current->inQueue = false;
 			//printf("%d < %d \n", current->step, current->CPUBursts.size());
 			if (0 < current->CPUBursts.size() - current->step - 1){
+				std::string grammar = "bursts";
+				if (current->CPUBursts.size() - current->step - 1 == 1){
+					grammar = "burst";
+				}
 				printTime(time);
-				printf("Process %c (tau %dms) completed a CPU burst; %ld bursts to go ", current->ID, current->tau, current->CPUBursts.size() - current->step - 1);
+				printf("Process %c (tau %dms) completed a CPU burst; %ld %s to go ", current->ID, current->tau, current->CPUBursts.size() - current->step - 1, grammar.c_str());
 				cpu.printPQueue();
 
 				int old_tau = current->tau;
@@ -277,21 +281,22 @@ time 242ms: Process A switching out of CPU; will block on I/O until time 584ms [
 
 				//added to io Burst
 				current->inIO = true;
-				current->remaining = current->getCurrentIOBurst() + cs / 2; //will subtract later for things in IO
+				//time remaining to get IOBurst and context switch out of this process
+				current->remaining = current->getCurrentIOBurst() + cs / 2; 
 
 				printTime(time);
 				printf("Process %c switching out of CPU; will block on I/O until time %dms ", current->ID, time + cs / 2 + current->getCurrentIOBurst());
 				cpu.printPQueue();
 
 			} else {
-
+				//process terminated
 				printTime(time);
 				printf("Process %c terminated ", current->ID);
 				cpu.printPQueue();
 				alive--;
 			}
 
-			cpu.context = cs; //time for the process to leave the cpu and for a new one to enter
+			cpu.context = cs / 2+1; //time for the process to leave the cpu (add one cause it is instantly subtracted)
 		}
 
 		//process starts using the cpu
@@ -303,13 +308,21 @@ time 242ms: Process A switching out of CPU; will block on I/O until time 584ms [
 				//move new process in
 				cpu.current = cpu.top();
 				cpu.pop();
+				
+				//wait for context switch before announcing 
+				cpu.current->remaining = cpu.current->getCurrentCPUBurst() - 1;
+				cpu.context = cs / 2 - 1;
+				//std::cout << time << std::endl;
+			} 
+		} else if (cpu.context > 0) {
+			cpu.context--;
+			//announce arrival of process
+			if (cpu.context == 0){
 				printTime(time);
 				printf("Process %c (tau %dms) started using the CPU for %dms burst ", cpu.current->ID, cpu.current->tau, cpu.current->getCurrentCPUBurst());
 				cpu.printPQueue();
-				//std::cout << cpu.current << std::endl;
-				cpu.current->remaining = cpu.current->getCurrentCPUBurst() - 1;
-			} 
-		} 
+			}
+		}
 
 		//IOburst completions
 		for (int i = 0; i < n; ++i){
@@ -319,9 +332,6 @@ time 242ms: Process A switching out of CPU; will block on I/O until time 584ms [
 					processes[i].inQueue = true;
 					processes[i].step += 1;
 					cpu.push(processes+i);
-					if (cpu.size() == 1){
-						cpu.context += cs / 2 - 1;
-					}
 
 					printTime(time);
 					printf("Process %c (tau %dms) completed I/O; added to ready queue ", processes[i].ID, processes[i].tau);
@@ -341,15 +351,16 @@ time 242ms: Process A switching out of CPU; will block on I/O until time 584ms [
 				printTime(time);
 				printf("Process %c (tau %dms) arrived; added to ready queue ", processes[i].ID, tau_init);
 				cpu.printPQueue();
-				if (cpu.size() == 1){
-					cpu.context = cs / 2 - 1;
-				}
 			}
 		}
 
 		++time;
 		//printf("%d %d %p \n", time, cpu.context, cpu.current);
 	}
+
+	printTime(time + cs /2 - 1);
+	printf("Simulator ended for SJF ");
+	cpu.printQueue();
 }
 
 /***********************************************************/

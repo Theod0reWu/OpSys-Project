@@ -19,7 +19,16 @@ Process::Process(char ID, int arrival, int tau){
 }
 
 bool Process::operator<(const Process& b) const {
-	return this->tau < b.tau;
+	if (this->tau > b.tau){
+		return true;
+	} else if (this->tau == b.tau){
+		return this->ID > b.ID;
+	} 
+	return false;
+}
+
+bool Process::operator>(const Process& b) const{
+	return ! (*this == b) && ! (*this < b);
 }
 
 //reset all values (except burst data)

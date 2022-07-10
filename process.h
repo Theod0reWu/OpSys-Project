@@ -22,11 +22,19 @@ class Process {
 		Process();
 		Process(char ID, int arrival, int tau = 0);
 		bool operator<(const Process& b) const;
+		bool operator>(const Process& b) const;
 		void reset();
 		bool operator==(Process const& other) const;
 
 		int getCurrentCPUBurst() const;
 		int getCurrentIOBurst() const;
+};
+
+class Compare {
+public:
+	bool operator()(Process* a, Process* b){
+		return *a < *b;
+	}
 };
 
 double next_exp(double lambda, int bound);
