@@ -19,7 +19,7 @@ Process::Process(char ID, int arrival, int tau){
 }
 
 bool Process::operator<(const Process& b) const {
-	if (this->tau > b.tau){
+	if (this->tau - this->getCurrentCPUBurst() + this->remaining > b.tau - b.getCurrentCPUBurst() + b.remaining){
 		return true;
 	} else if (this->tau == b.tau){
 		return this->ID > b.ID;

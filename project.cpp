@@ -234,7 +234,6 @@ void SJF(Process * processes, int n, int cs, double alpha, double lambda){
 	int time = 0;
 	CPU cpu;
 	cpu.context = 0;
-	bool context_switching = false;
 	int alive = n; //counter for how many processes are still alive
 	int tau_init = int(ceil(1/lambda));
 
@@ -365,14 +364,40 @@ time 242ms: Process A switching out of CPU; will block on I/O until time 584ms [
 
 /***********************************************************/
 
+//this method should handle a newProcess preempting the current process. 
+void preempt(CPU& cpu, int cs, int time, bool io = true, bool alreadyArrived = false){
+	std::string finished = " completed I/O;";
+	std::string preemptGrammar = "preempting";
+	if (!io){
+		finished = " arrived;";
+	}
+
+	if (alreadyArrived){
+		preemptGrammar = "will preempt";
+		finished = "";
+	}
+
+	printTime(time);
+	printf("Process %c (tau %dms)%s %s %c ", cpu.top()->ID, cpu.top()->tau, finished.c_str(), preemptGrammar.c_str(), cpu.current->ID);
+	cpu.printPQueue();
+
+	//place the current process into the queue
+	cpu.push(cpu.current);
+	//take on the new process
+	cpu.current = cpu.top();
+	cpu.pop();
+	//context switch
+	cpu.context = cs;
+}
+
 void SRT(Process * processes, int n, int cs, double alpha, double lambda){
 	//initialize
 	int time = 0;
 	CPU cpu;
 	cpu.context = 0;
-	bool context_switching = false;
 	int alive = n; //counter for how many processes are still alive
 	int tau_init = int(ceil(1/lambda));
+	int check_preempt = -1;
 
 	printTime(time);
 	printf("Simulator started for SRT ");
@@ -392,8 +417,6 @@ to the ready queue); and (d) new process arrivals.
 			//cpu burst completion and context switch if possible
 			Process * current = cpu.current;
 			cpu.current = NULL;
-			current->inCPU = false;
-			current->inQueue = false;
 			//printf("%d < %d \n", current->step, current->CPUBursts.size());
 			if (0 < current->CPUBursts.size() - current->step - 1){
 				std::string grammar = "bursts";
@@ -442,17 +465,25 @@ to the ready queue); and (d) new process arrivals.
 				cpu.pop();
 				
 				//wait for context switch before announcing 
-				cpu.current->remaining = cpu.current->getCurrentCPUBurst() - 1;
+				//cpu.current->remaining = cpu.current->getCurrentCPUBurst() - 1;
 				cpu.context = cs / 2 - 1;
-				//std::cout << time << std::endl;
 			} 
 		} else if (cpu.context > 0) {
 			cpu.context--;
 			//announce arrival of process
 			if (cpu.context == 0){
 				printTime(time);
-				printf("Process %c (tau %dms) started using the CPU for %dms burst ", cpu.current->ID, cpu.current->tau, cpu.current->getCurrentCPUBurst());
+				if (cpu.current->remaining == cpu.current->getCurrentCPUBurst() - 1){
+					printf("Process %c (tau %dms) started using the CPU for %dms burst ", cpu.current->ID, cpu.current->tau, cpu.current->getCurrentCPUBurst());
+				} else {
+					printf("Process %c (tau %dms) started using the CPU for remaining %dms of %dms burst ", cpu.current->ID, cpu.current->tau, cpu.current->remaining + 1, cpu.current->getCurrentCPUBurst());
+				}
 				cpu.printPQueue();
+
+				if (check_preempt != -1){
+					check_preempt = -1;
+					preempt(cpu, cs, time, check_preempt, true);
+				}
 			}
 		}
 
@@ -461,13 +492,26 @@ to the ready queue); and (d) new process arrivals.
 			if (processes[i].inIO){
 				if (processes[i].remaining == 0){
 					processes[i].inIO = false;
-					processes[i].inQueue = true;
 					processes[i].step += 1;
+					processes[i].remaining = processes[i].getCurrentCPUBurst() - 1;
 					cpu.push(processes+i);
 
-					printTime(time);
-					printf("Process %c (tau %dms) completed I/O; added to ready queue ", processes[i].ID, processes[i].tau);
-					cpu.printPQueue();
+					//can preempt here
+					//only preempts if there is a process in the CPU
+					if (cpu.current != NULL && processes[i].tau < cpu.current->tau - (cpu.current->getCurrentCPUBurst() - cpu.current->remaining)){
+						if (cpu.context == 0){
+							preempt(cpu, cs, time);
+						} else {
+							printTime(time);
+							printf("Process %c (tau %dms) completed I/O; added to ready queue ", processes[i].ID, processes[i].tau);
+							cpu.printPQueue();
+							check_preempt = 1;
+						}
+					} else {
+						printTime(time);
+						printf("Process %c (tau %dms) completed I/O; added to ready queue ", processes[i].ID, processes[i].tau);
+						cpu.printPQueue();
+					}
 				} else {
 					processes[i].remaining--;
 				}
@@ -480,6 +524,10 @@ to the ready queue); and (d) new process arrivals.
 			if (processes[i].arrival == time){
 				cpu.push(processes+i, tau_init);
 				processes[i].inQueue = true;
+				processes[i].remaining = processes[i].getCurrentCPUBurst() - 1;
+
+				//can preempt here
+
 				printTime(time);
 				printf("Process %c (tau %dms) arrived; added to ready queue ", processes[i].ID, tau_init);
 				cpu.printPQueue();
@@ -686,12 +734,13 @@ int main(int argc, char** argv) {
 	
 	//do SJF
 	resetAll(p, n);
-	SJF(p, n, cs, alpha, lambda);
+	//SJF(p, n, cs, alpha, lambda);
 	
 	//printf("\n");
 	
 	//do SRT
 	resetAll(p, n);
+	SRT(p, n, cs, alpha, lambda);
 	
 	//printf("\n");
 	
