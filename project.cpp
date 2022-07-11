@@ -527,10 +527,20 @@ to the ready queue); and (d) new process arrivals.
 				processes[i].remaining = processes[i].getCurrentCPUBurst() - 1;
 
 				//can preempt here
-
-				printTime(time);
-				printf("Process %c (tau %dms) arrived; added to ready queue ", processes[i].ID, tau_init);
-				cpu.printPQueue();
+				if (cpu.current != NULL && processes[i].tau < cpu.current->tau - (cpu.current->getCurrentCPUBurst() - cpu.current->remaining - 1)){
+					if (cpu.context == 0){
+						preempt(cpu, cs, time);
+					} else {
+						printTime(time);
+						printf("Process %c (tau %dms) arrived; added to ready queue ", processes[i].ID, processes[i].tau);
+						cpu.printPQueue();
+						check_preempt = 0;
+					}
+				} else {
+					printTime(time);
+					printf("Process %c (tau %dms) arrived; added to ready queue ", processes[i].ID, tau_init);
+					cpu.printPQueue();
+				}
 			}
 		}
 
