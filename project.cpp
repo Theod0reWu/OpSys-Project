@@ -498,7 +498,7 @@ to the ready queue); and (d) new process arrivals.
 
 					//can preempt here
 					//only preempts if there is a process in the CPU
-					if (cpu.current != NULL && processes[i].tau < cpu.current->tau - (cpu.current->getCurrentCPUBurst() - cpu.current->remaining)){
+					if (cpu.current != NULL && processes[i].tau < cpu.current->tau - (cpu.current->getCurrentCPUBurst() - cpu.current->remaining - 1)){
 						if (cpu.context == 0){
 							preempt(cpu, cs, time);
 						} else {
