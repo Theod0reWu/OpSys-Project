@@ -94,7 +94,7 @@ double ceilTo3(double n){
 double totalBurstTime(Process* processes, int n){
 	double total = 0;
 	for (int i = 0; i < n; ++i){
-		for (int e = 0; e < processes[i].CPUBursts.size(); ++e){
+		for (int e = 0; e < int(processes[i].CPUBursts.size()); ++e){
 			total += processes[i].CPUBursts[e];
 		}
 	}
