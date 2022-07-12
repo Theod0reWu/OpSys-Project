@@ -3,7 +3,6 @@ class Process {
 		char ID;
 		int waitTime = 0; //counts time in queue
 		int CPUTime = 0; //counts time in CPU
-		int IOTime = 0; //counts time in I/O
 		int arrival; //arrival time
 		int nextArr; //next arrival time
 		std::vector<int> CPUBursts;
@@ -19,6 +18,7 @@ class Process {
 		bool swap = true; //true if swapping into CPU, false if leaving CPU
 		bool preempt = false; //true if current swap is a preemption
 		
+		bool turn = false; //true when 
 		int turnaround = 0;
 
 		Process();
