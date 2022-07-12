@@ -242,7 +242,7 @@ void FCFS(Process* processes, int n, int cs) {
 }
 
 /***********************************************************/
-void SJF(Process * processes, int n, int cs, double alpha, double lambda){
+void SJF(Process * processes, int n, int cs, double alpha, double lambda, ofstream& file){
 	//initialize
 	int time = 0;
 	CPU cpu;
@@ -373,6 +373,11 @@ time 242ms: Process A switching out of CPU; will block on I/O until time 584ms [
 	printTime(time + cs /2 - 1);
 	printf("Simulator ended for SJF ");
 	cpu.printQueue();
+
+	file << "Algorithm SJF\n";
+	file << "-- average CPU burst time: " << "ms\n";
+
+
 }
 
 /***********************************************************/
@@ -752,6 +757,10 @@ int main(int argc, char** argv) {
 	
 	//validation error handling
 	
+	//open file
+	ofstream file;
+	file.open(simout.txt);
+
 	
 	//build processes
 	Process* p = build(n, seed, lambda, bound);
@@ -799,4 +808,6 @@ int main(int argc, char** argv) {
 	// 	delete[] p[i].IOBursts;
 	// }
 	delete[] p;
+
+	file.close();
 }

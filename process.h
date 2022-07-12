@@ -39,4 +39,3 @@ public:
 
 double next_exp(double lambda, int bound);
 Process* build(int n, int seed, double lambda, int bound);
-
