@@ -312,7 +312,6 @@ void SJF(Process * processes, int n, int cs, double alpha, double lambda, std::o
 	int tau_init = int(ceil(1/lambda));
 
 	int total_waitTime = 0;
-	int waits = 0;
 	int context_switches = 0;
 
 	printTime(time);
