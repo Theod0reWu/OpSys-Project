@@ -91,6 +91,36 @@ double ceilTo3(double n){
 	return n/1000;
 }
 
+double totalBurstTime(Process* processes, int n){
+	double total = 0;
+	for (int i = 0; i < n; ++i){
+		for (int e = 0; e < processes[i].CPUBursts.size(); ++e){
+			total += processes[i].CPUBursts[e];
+		}
+	}
+	return total;
+}
+
+double totalBursts(Process* processes, int n){
+	double total = 0;
+	for (int i = 0; i < n; ++i){
+		total += processes[i].CPUBursts.size();
+	}
+	return total;
+}
+
+double avgCPUBurstTime(Process* processes, int n) {
+	double total = totalBurstTime(processes, n);
+	return ceilTo3(total / totalBursts(processes, n)); 
+}
+
+double CPUutil(Process* processes, int n, int total_time){
+	double total = totalBurstTime(processes, n);
+	return ceilTo3(total / total_time);
+}
+
+
+
 void fetch(char** args, int& n, int& seed, double& lambda, int& bound, int& cs, double& alpha, int& slice) {
 	//use arguments as buffers
 	n = atoi(args[1]);
@@ -297,6 +327,10 @@ void SJF(Process * processes, int n, int cs, double alpha, double lambda, std::o
 	int alive = n; //counter for how many processes are still alive
 	int tau_init = int(ceil(1/lambda));
 
+	int total_waitTime = 0;
+	int waits = 0;
+	int context_switches = 0;
+
 	printTime(time);
 	printf("Simulator started for SJF ");
 	cpu.printPQueue();
@@ -380,6 +414,8 @@ time 242ms: Process A switching out of CPU; will block on I/O until time 584ms [
 				printTime(time);
 				printf("Process %c (tau %dms) started using the CPU for %dms burst ", cpu.current->ID, cpu.current->tau, cpu.current->getCurrentCPUBurst());
 				cpu.printPQueue();
+
+				context_switches++;
 			}
 		}
 
@@ -395,6 +431,7 @@ time 242ms: Process A switching out of CPU; will block on I/O until time 584ms [
 					printTime(time);
 					printf("Process %c (tau %dms) completed I/O; added to ready queue ", processes[i].ID, processes[i].tau);
 					cpu.printPQueue();
+					waits++;
 				} else {
 					processes[i].remaining--;
 				}
@@ -413,16 +450,23 @@ time 242ms: Process A switching out of CPU; will block on I/O until time 584ms [
 			}
 		}
 
+		total_waitTime += cpu.size();
+
 		++time;
 		//printf("%d %d %p \n", time, cpu.context, cpu.current);
 	}
-
-	printTime(time + cs /2 - 1);
+	time = time + cs /2 - 1;
+	printTime(time);
 	printf("Simulator ended for SJF ");
 	cpu.printQueue();
 
 	file << "Algorithm SJF\n";
-	file << "-- average CPU burst time: " << "ms\n";
+	file << "-- average CPU burst time: " << avgCPUBurstTime(processes, n) << "ms\n";
+	file << "-- average wait time: " << total_waitTime / waits << "ms\n";
+	file << "-- average turnaround time: " << ceilTo3((total_waitTime + totalBurstTime(processes, n) + context_switches * cs) / totalBursts(processes, n)) << "ms\n";
+	file << "-- total number of context switches: " << context_switches << "ms\n";
+	file << "-- total number of preemptions: " << 0 << "ms\n";
+	file << "-- CPU utilization: " << CPUutil(processes, n, time)<< "ms\n";
 
 
 }
@@ -813,18 +857,18 @@ int main(int argc, char** argv) {
 	Process* p = build(n, seed, lambda, bound);
 	
 	//display processes
-	// int tau_init = int(ceil(1/lambda));
-	// for (int i = 0; i < n; i++) {
-	// 	printf("Process %c: arrival time %dms; tau %dms; %ld CPU bursts:\n", p[i].ID, p[i].arrival, tau_init, p[i].CPUBursts.size());
-	// 	for (int j = 0; j < int(p[i].CPUBursts.size()); j++) {
-	// 		if (j != int(p[i].CPUBursts.size() - 1)) {
-	// 			printf("--> CPU burst %dms --> I/O burst %dms\n", p[i].CPUBursts[j], p[i].IOBursts[j]);
-	// 		}
-	// 		else {
-	// 			printf("--> CPU burst %dms\n", p[i].CPUBursts[j]);
-	// 		}
-	// 	}
-	// }
+	int tau_init = int(ceil(1/lambda));
+	for (int i = 0; i < n; i++) {
+		printf("Process %c: arrival time %dms; tau %dms; %ld CPU bursts:\n", p[i].ID, p[i].arrival, tau_init, p[i].CPUBursts.size());
+		for (int j = 0; j < int(p[i].CPUBursts.size()); j++) {
+			if (j != int(p[i].CPUBursts.size() - 1)) {
+				printf("--> CPU burst %dms --> I/O burst %dms\n", p[i].CPUBursts[j], p[i].IOBursts[j]);
+			}
+			else {
+				printf("--> CPU burst %dms\n", p[i].CPUBursts[j]);
+			}
+		}
+	}
 	
 	//printf("\n");
 	
@@ -835,7 +879,7 @@ int main(int argc, char** argv) {
 	
 	//do SJF
 	resetAll(p, n);
-	//SJF(p, n, cs, alpha, lambda);
+	SJF(p, n, cs, alpha, lambda, file);
 	
 	//printf("\n");
 	
