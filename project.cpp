@@ -452,17 +452,18 @@ time 242ms: Process A switching out of CPU; will block on I/O until time 584ms [
 	printTime(time);
 	printf("Simulator ended for SJF ");
 	cpu.printQueue();
+
 	file << "Algorithm SJF\n";
-	file << "-- average CPU burst time: " << avgCPUBurstTime(processes, n) << "ms\n";
+	file << "-- average CPU burst time: " << avgCPUBurstTime(processes, n) << " ms\n";
 	file << "-- average wait time: ";
-	if (waits == 0){
-		file << "0.000ms\n";
+	if (total_waitTime == 0){
+		file << "0.000 ms\n";
 	} else {
 		char buffer[10];
-		sprintf(buffer,"%.3lfms\n", double(total_waitTime) / totalBursts(processes, n));
+		sprintf(buffer,"%.3lf ms\n", double(total_waitTime) / totalBursts(processes, n));
 		file << buffer;
 	}
-	file << "-- average turnaround time: " << ceilTo3((total_waitTime + totalBurstTime(processes, n) + context_switches * cs) / totalBursts(processes, n)) << "ms\n";
+	file << "-- average turnaround time: " << ceilTo3((total_waitTime + totalBurstTime(processes, n) + context_switches * cs) / totalBursts(processes, n)) << " ms\n";
 	file << "-- total number of context switches: " << context_switches << "\n";
 	file << "-- total number of preemptions: " << 0 << "\n";
 	file << "-- CPU utilization: " << CPUutil(processes, n, time)<< "%\n";
