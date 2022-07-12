@@ -497,7 +497,6 @@ void preempt(CPU& cpu, int cs, int time, bool io = true, bool alreadyArrived = f
 	cpu.context = cs;
 }
 
-void SRT(Process * processes, int n, int cs, double alpha, double lambda){
 	//initialize
 	int time = 0;
 	CPU cpu;
@@ -505,6 +504,10 @@ void SRT(Process * processes, int n, int cs, double alpha, double lambda){
 	int alive = n; //counter for how many processes are still alive
 	int tau_init = int(ceil(1/lambda));
 	int check_preempt = -1;
+
+	int total_waitTime = 0;
+	int context_switches = 0;
+	int preemptions = 0;
 
 	printTime(time);
 	printf("Simulator started for SRT ");
@@ -579,6 +582,7 @@ to the ready queue); and (d) new process arrivals.
 			cpu.context--;
 			//announce arrival of process
 			if (cpu.context == 0){
+				context_switches++;
 				printTime(time);
 				if (cpu.current->remaining == cpu.current->getCurrentCPUBurst() - 1){
 					printf("Process %c (tau %dms) started using the CPU for %dms burst ", cpu.current->ID, cpu.current->tau, cpu.current->getCurrentCPUBurst());
@@ -588,6 +592,7 @@ to the ready queue); and (d) new process arrivals.
 				cpu.printPQueue();
 
 				if (check_preempt != -1){
+					context_switches++;
 					check_preempt = -1;
 					preempt(cpu, cs, time, check_preempt, true);
 				}
@@ -607,8 +612,12 @@ to the ready queue); and (d) new process arrivals.
 					//only preempts if there is a process in the CPU
 					if (cpu.current != NULL && processes[i].tau < cpu.current->tau - (cpu.current->getCurrentCPUBurst() - cpu.current->remaining - 1)){
 						if (cpu.context == 0){
+							//change the wait time
+							//total_waitTime -= cs / 2;
+							preemptions++;
 							preempt(cpu, cs, time);
 						} else {
+							context_switches++;
 							printTime(time);
 							printf("Process %c (tau %dms) completed I/O; added to ready queue ", processes[i].ID, processes[i].tau);
 							cpu.printPQueue();
@@ -618,6 +627,7 @@ to the ready queue); and (d) new process arrivals.
 						printTime(time);
 						printf("Process %c (tau %dms) completed I/O; added to ready queue ", processes[i].ID, processes[i].tau);
 						cpu.printPQueue();
+						total_waitTime--;
 					}
 				} else {
 					processes[i].remaining--;
@@ -636,6 +646,7 @@ to the ready queue); and (d) new process arrivals.
 				//can preempt here
 				if (cpu.current != NULL && processes[i].tau < cpu.current->tau - (cpu.current->getCurrentCPUBurst() - cpu.current->remaining - 1)){
 					if (cpu.context == 0){
+						preemptions++;
 						preempt(cpu, cs, time);
 					} else {
 						printTime(time);
@@ -647,17 +658,35 @@ to the ready queue); and (d) new process arrivals.
 					printTime(time);
 					printf("Process %c (tau %dms) arrived; added to ready queue ", processes[i].ID, tau_init);
 					cpu.printPQueue();
+					total_waitTime--;
 				}
 			}
 		}
 
 		++time;
+		total_waitTime += cpu.size();
 		//printf("%d %d %p \n", time, cpu.context, cpu.current);
 	}
 
-	printTime(time + cs /2 - 1);
+	time = time + cs /2 - 1;
+	printTime(time);
 	printf("Simulator ended for SRT ");
 	cpu.printQueue();
+
+	file << "Algorithm SRT\n";
+	file << "-- average CPU burst time: " << avgCPUBurstTime(processes, n) << " ms\n";
+	file << "-- average wait time: ";
+	if (total_waitTime == 0){
+		file << "0.000 ms\n";
+	} else {
+		char buffer[100];
+		sprintf(buffer,"%.3lf ms\n", double(total_waitTime) / totalBursts(processes, n));
+		file << buffer;
+	}
+	file << "-- average turnaround time: " << ceilTo3((total_waitTime + totalBurstTime(processes, n) + context_switches * cs) / totalBursts(processes, n)) << " ms\n";
+	file << "-- total number of context switches: " << context_switches << "\n";
+	file << "-- total number of preemptions: " << preemptions << "\n";
+	file << "-- CPU utilization: " << CPUutil(processes, n, time)<< "%\n";
 }
 
 /***********************************************************/
@@ -931,7 +960,11 @@ int main(int argc, char** argv) {
 	
 	//do SRT
 	resetAll(p, n);
+<<<<<<< HEAD
 	SRT(p, n, cs, alpha, lambda);
+=======
+	SRT(p, n, cs, alpha, lambda, file);
+>>>>>>> 5b8196a4b97823f349e38247a1be05555bfbdb4c
 	
 	//printf("\n");
 	
