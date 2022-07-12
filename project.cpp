@@ -84,6 +84,12 @@ class CPU {
 	}
 };
 
+double ceilTo3(double n){
+	n *= 1000;
+	n = ceil(n);
+	return n/1000;
+}
+
 void fetch(char** args, int& n, int& seed, double& lambda, int& bound, int& cs, double& alpha, int& slice) {
 	//use arguments as buffers
 	n = atoi(args[1]);
