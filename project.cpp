@@ -882,8 +882,13 @@ void RR(Process* processes, int n, int cs, int slice, std::ofstream& file) {
 	}
 	for (int i = 0; i < n; i++) {
 		Process* p = &(processes[i]);
+		if (!(p->turn)) {
+			p->turnaround = 0;
+		}
+	}
+	for (int i = 0; i < n; i++) {
+		Process* p = &(processes[i]);
 		turnarounds += p->turnaround;
-		p->turnaround = 0;
 	}
 	
 	//end
