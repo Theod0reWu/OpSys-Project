@@ -961,11 +961,7 @@ int main(int argc, char** argv) {
 	
 	//do SRT
 	resetAll(p, n);
-<<<<<<< HEAD
-	SRT(p, n, cs, alpha, lambda);
-=======
 	SRT(p, n, cs, alpha, lambda, file);
->>>>>>> 5b8196a4b97823f349e38247a1be05555bfbdb4c
 	
 	//printf("\n");
 	
