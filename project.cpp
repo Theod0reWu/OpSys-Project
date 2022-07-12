@@ -295,7 +295,15 @@ void FCFS(Process* processes, int n, int cs, std::ostream& file) {
 	//output
 	file << "Algorithm FCFS\n";
 	file << "-- average CPU burst time: " << avgCPUBurstTime(processes, n) << " ms\n";
-	file << "-- average wait time: " << ceilTo3(totalWait / waitCount) << " ms\n";
+	file << "-- average wait time: ";
+	if (totalWait == 0){
+		file << "0.000 ms\n";
+	} 
+	else {
+		char buffer[10];
+		sprintf(buffer,"%.3lfms\n", totalWait / waitCount);
+		file << buffer << " ms\n";
+	}
 	file << "-- average turnaround time: " << ceilTo3(turnarounds / contextSwitches) << " ms\n";
 	file << "-- total number of context switches: " << contextSwitches << "\n";
 	file << "-- total number of preemptions: 0\n";
