@@ -145,13 +145,16 @@ void printTime(int t) {
 }
 
 /***********************************************************/
-void FCFS(Process* processes, int n, int cs) {
-	std::cout << processes << std::endl;
+void FCFS(Process* processes, int n, int cs, std::ostream& file) {
 	//initialize
 	int time = 0;
 	CPU cpu;
 	cpu.context = 0;
 	int alive = n; //counter for how many processes are still alive
+	int contextSwitches = 0;
+	double totalWait = 0; //total wait time
+	int waitCount = 0; //number of distinct wait times
+	double turnarounds = 0; //total turnaround time
 	
 	//start
 	printTime(time);
@@ -178,10 +181,12 @@ void FCFS(Process* processes, int n, int cs) {
 				printTime(time);
 				printf("Process %c started using the CPU for %dms burst ", a->ID, a->CPUBursts[a->step]);
 				cpu.printQueue();
+				contextSwitches++;
 			}
 			else { //switching out of CPU
 				a->inIO = true;
 				cpu.switching = NULL;
+				a->turn = false;
 			}
 		}
 		
@@ -193,6 +198,7 @@ void FCFS(Process* processes, int n, int cs) {
 			if (time == p->nextArr) {
 				cpu.push_back(*p);
 				p->inQueue = true;
+				p->turn = true;
 				
 				if (p->inIO) {
 					p->inIO = false;
@@ -216,8 +222,11 @@ void FCFS(Process* processes, int n, int cs) {
 					cpu.context += cs/2;
 					cpu.switching = p;
 					p->CPUTime = 0;
+					totalWait += p->waitTime;
+					waitCount++;
+					p->waitTime = 0;
 				}
-				p->waitTime++;
+				else {p->waitTime++;}
 			}
 			
 			//check CPU time
@@ -262,6 +271,18 @@ void FCFS(Process* processes, int n, int cs) {
 			}
 		}
 		
+		//turnaround counter
+		for (int i = 0; i < n; i++) {
+			Process* p = &(processes[i]);
+			if (p->turn) {
+				p->turnaround++;
+			}
+			else {
+				turnarounds += p->turnaround;
+				p->turnaround = 0;
+			}
+		}
+		
 		time++;
 	}
 	time--;
@@ -270,6 +291,31 @@ void FCFS(Process* processes, int n, int cs) {
 	printTime(time);
 	printf("Simulator ended for FCFS ");
 	cpu.printQueue();
+	
+	//output
+	file << "Algorithm FCFS\n";
+	
+	file << "-- average CPU burst time: ";
+	//number here
+	file << " ms\n";
+	
+	file << "-- average wait time: ";
+	file << ceilTo3(totalWait / waitCount);
+	file << " ms\n";
+	
+	file << "-- average turnaround time: ";
+	file << ceilTo3(turnarounds / contextSwitches);
+	file << " ms\n";
+	
+	file << "-- total number of context switches: ";
+	file << contextSwitches;
+	file << "\n";
+	
+	file << "-- total number of preemptions: 0\n";
+
+	file << "-- CPU utilization: ";
+	//number here
+	file << "%\n";
 }
 
 /***********************************************************/
@@ -833,8 +879,8 @@ int main(int argc, char** argv) {
 	
 	//do FCFS
 	resetAll(p, n);
-	//FCFS(p, n, cs);
-	//printf("\n");
+	FCFS(p, n, cs, file);
+	printf("\n");
 	
 	//do SJF
 	resetAll(p, n);

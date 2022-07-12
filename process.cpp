@@ -35,7 +35,7 @@ bool Process::operator>(const Process& b) const{
 void Process::reset() {
 	this->waitTime = 0;
 	this->CPUTime = 0;
-	this->IOTime = 0;
+	//this->IOTime = 0;
 	this->nextArr = this->arrival;
 	this->step = 0;
 	this->inCPU = false;
