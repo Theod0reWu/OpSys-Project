@@ -90,6 +90,28 @@ double ceilTo3(double n){
 	return n/1000;
 }
 
+double avgCPUBurstTime(Processes* processes, int n) {
+	double total = 0;
+	for (int i = 0; i < n; ++i){
+		for (int e = 0; e < processes[i].CPUBursts.size(); ++e){
+			total += processes[i].CPUBursts[e];
+		}
+	}
+	return ceilTo3(total / n); 
+}
+
+double CPUutil(Processes* processes, int n, int total_time){
+	double total = 0;
+	for (int i = 0; i < n; ++i){
+		for (int e = 0; e < processes[i].CPUBursts.size(); ++e){
+			total += processes[i].CPUBursts[e];
+		}
+	}
+	return ceilTo3(total / total_time)
+}
+
+
+
 void fetch(char** args, int& n, int& seed, double& lambda, int& bound, int& cs, double& alpha, int& slice) {
 	//use arguments as buffers
 	n = atoi(args[1]);
