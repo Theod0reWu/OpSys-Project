@@ -300,7 +300,7 @@ void FCFS(Process* processes, int n, int cs, std::ostream& file) {
 		file << "0.000 ms\n";
 	} 
 	else {
-		char buffer[10];
+		char buffer[100];
 		sprintf(buffer,"%.3lfms\n", totalWait / waitCount);
 		file << buffer << " ms\n";
 	}
@@ -458,7 +458,7 @@ time 242ms: Process A switching out of CPU; will block on I/O until time 584ms [
 	if (total_waitTime == 0){
 		file << "0.000 ms\n";
 	} else {
-		char buffer[10];
+		char buffer[100];
 		sprintf(buffer,"%.3lf ms\n", double(total_waitTime) / totalBursts(processes, n));
 		file << buffer;
 	}
