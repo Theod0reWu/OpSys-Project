@@ -465,7 +465,7 @@ time 242ms: Process A switching out of CPU; will block on I/O until time 584ms [
 	file << "-- average turnaround time: " << ceilTo3((total_waitTime + totalBurstTime(processes, n) + context_switches * cs) / totalBursts(processes, n)) << " ms\n";
 	file << "-- total number of context switches: " << context_switches << "\n";
 	file << "-- total number of preemptions: " << 0 << "\n";
-	file << "-- CPU utilization: " << CPUutil(processes, n, time)<< "%\n";
+	file << "-- CPU utilization: " << CPUutil(processes, n, time) << "%\n";
 }
 
 /***********************************************************/
@@ -690,12 +690,17 @@ to the ready queue); and (d) new process arrivals.
 }
 
 /***********************************************************/
-void RR(Process* processes, int n, int cs, int slice) {
+void RR(Process* processes, int n, int cs, int slice, std::ofstream& file) {
 	//start
 	int time = 0;
 	CPU cpu;
 	cpu.context = 0;
 	int alive = n;
+	int contextSwitches = 0;
+	double totalWait = 0;
+	int waitCount = 0;
+	double turnarounds = 0;
+	int preemptions = 0;
 	
 	printTime(time);
 	printf("Simulator started for RR with time slice %dms ", slice);
@@ -717,6 +722,7 @@ void RR(Process* processes, int n, int cs, int slice) {
 						cpu.context += cs/2;
 						p->swap = false;
 						p->inCPU = false;
+						p->turn = false;
 					}
 					
 					if (p->CPUTime == p->remaining) { //CPU burst done
@@ -764,6 +770,7 @@ void RR(Process* processes, int n, int cs, int slice) {
 						}
 						else { //preempt here
 							p->preempt = true;
+							preemptions++;
 						
 							printTime(time);
 							printf("Time slice expired; process %c preempted with %dms remaining ", p->ID, p->remaining);
@@ -782,6 +789,7 @@ void RR(Process* processes, int n, int cs, int slice) {
 				a->inCPU = true;
 				cpu.current = a;
 				cpu.switching = NULL;
+				contextSwitches++;
 				
 				printTime(time);
 				if (a->remaining < (a->CPUBursts)[a->step]) {
@@ -815,6 +823,7 @@ void RR(Process* processes, int n, int cs, int slice) {
 				printf("Process %c completed I/O; added to ready queue ", p->ID);
 				cpu.printQueue();
 				p->remaining = p->CPUBursts[p->step];
+				p->turn = true;
 			}
 		}
 		
@@ -828,6 +837,7 @@ void RR(Process* processes, int n, int cs, int slice) {
 				printf("Process %c arrived; added to ready queue ", p->ID);
 				cpu.printQueue();
 				p->remaining = p->CPUBursts[p->step];
+				p->turn = true;
 			}
 		}
 		
@@ -842,8 +852,12 @@ void RR(Process* processes, int n, int cs, int slice) {
 					cpu.context += cs/2;
 					p->CPUTime = 0;
 					cpu.pop_front();
+					
+					totalWait += p->waitTime;
+					waitCount++;
+					p->waitTime = 0;
 				}
-				p->waitTime++;
+				else {p->waitTime++;}
 			}
 		}
 		
@@ -851,6 +865,17 @@ void RR(Process* processes, int n, int cs, int slice) {
 			cpu.context--;
 		}
 		
+		//count turnaround time
+		for (int i = 0; i < n; i++) {
+			Process* p = &(processes[i]);
+			if (p->turn) {
+				p->turnaround++;
+			}
+			else {
+				turnarounds += p->turnaround;
+				p->turnaround = 0;
+			}
+		}
 		time++;
 	}
 	
@@ -858,6 +883,23 @@ void RR(Process* processes, int n, int cs, int slice) {
 	printTime(time);
 	printf("Simulator ended for RR ");
 	cpu.printQueue();
+	
+	//output
+	file << "Algorithm RR\n";
+	file << "-- average CPU burst time: " << avgCPUBurstTime(processes, n) << " ms\n";
+	file << "-- average wait time: ";
+	if (totalWait == 0){
+		file << "0.000 ms\n";
+	} 
+	else {
+		char buffer[100];
+		sprintf(buffer,"%.3lfms\n", totalWait / waitCount);
+		file << buffer;
+	}
+	file << "-- average turnaround time: " << ceilTo3(turnarounds / contextSwitches) << " ms\n";
+	file << "-- total number of context switches: " << contextSwitches << "\n";
+	file << "-- total number of preemptions: " << preemptions << "\n";
+	file << "-- CPU utilization: " << CPUutil(processes, n, time) << "%\n";
 }
 
 int main(int argc, char** argv) {
@@ -901,7 +943,7 @@ int main(int argc, char** argv) {
 	
 	//do FCFS
 	resetAll(p, n);
-	FCFS(p, n, cs, file);
+	//FCFS(p, n, cs, file);
 	printf("\n");
 	
 	//do SJF
@@ -918,7 +960,7 @@ int main(int argc, char** argv) {
 	
 	//do RR
 	resetAll(p, n);
-	//RR(p, n, cs, slice);
+	RR(p, n, cs, slice, file);
 	
 	//cleanup
 	// for (int i = 0; i < n; i++) {
