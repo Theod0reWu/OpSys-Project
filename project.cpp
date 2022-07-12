@@ -302,7 +302,7 @@ void FCFS(Process* processes, int n, int cs, std::ostream& file) {
 	else {
 		char buffer[100];
 		sprintf(buffer,"%.3lfms\n", totalWait / waitCount);
-		file << buffer << " ms\n";
+		file << buffer;
 	}
 	file << "-- average turnaround time: " << ceilTo3(turnarounds / contextSwitches) << " ms\n";
 	file << "-- total number of context switches: " << contextSwitches << "\n";
