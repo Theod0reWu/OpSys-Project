@@ -116,7 +116,7 @@ double avgCPUBurstTime(Process* processes, int n) {
 
 double CPUutil(Process* processes, int n, int total_time){
 	double total = totalBurstTime(processes, n);
-	return ceilTo3(total / total_time);
+	return ceilTo3(total / total_time * 100);
 }
 
 
@@ -471,9 +471,9 @@ time 242ms: Process A switching out of CPU; will block on I/O until time 584ms [
 		file << buffer;
 	}
 	file << "-- average turnaround time: " << ceilTo3((total_waitTime + totalBurstTime(processes, n) + context_switches * cs) / totalBursts(processes, n)) << "ms\n";
-	file << "-- total number of context switches: " << context_switches << "ms\n";
-	file << "-- total number of preemptions: " << 0 << "ms\n";
-	file << "-- CPU utilization: " << CPUutil(processes, n, time)<< "ms\n";
+	file << "-- total number of context switches: " << context_switches << "\n";
+	file << "-- total number of preemptions: " << 0 << "\n";
+	file << "-- CPU utilization: " << CPUutil(processes, n, time)<< "%\n";
 }
 
 /***********************************************************/
