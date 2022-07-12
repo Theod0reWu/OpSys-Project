@@ -497,6 +497,7 @@ void preempt(CPU& cpu, int cs, int time, bool io = true, bool alreadyArrived = f
 	cpu.context = cs;
 }
 
+void SRT(Process * processes, int n, int cs, double alpha, double lambda, std::ofstream& file){
 	//initialize
 	int time = 0;
 	CPU cpu;
