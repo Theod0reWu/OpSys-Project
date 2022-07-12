@@ -278,6 +278,7 @@ void FCFS(Process* processes, int n, int cs, std::ostream& file) {
 				p->turnaround++;
 			}
 			else {
+				if (p->turnaround) {std::cout << "here: " << p->turnaround << std::endl;}
 				turnarounds += p->turnaround;
 				p->turnaround = 0;
 			}
@@ -692,7 +693,6 @@ void RR(Process* processes, int n, int cs, int slice, std::ofstream& file) {
 						cpu.context += cs/2;
 						p->swap = false;
 						p->inCPU = false;
-						p->turn = false;
 					}
 					
 					if (p->CPUTime == p->remaining) { //CPU burst done
@@ -778,6 +778,7 @@ void RR(Process* processes, int n, int cs, int slice, std::ofstream& file) {
 			else { //switching out to IO
 				a->inIO = true;
 				cpu.switching = NULL;
+				a->turn = false;
 			}
 		}
 		
@@ -842,11 +843,17 @@ void RR(Process* processes, int n, int cs, int slice, std::ofstream& file) {
 				p->turnaround++;
 			}
 			else {
+				if (p->turnaround) {std::cout << "here: " << p->turnaround << std::endl;}
 				turnarounds += p->turnaround;
 				p->turnaround = 0;
 			}
 		}
 		time++;
+	}
+	for (int i = 0; i < n; i++) {
+		Process* p = &(processes[i]);
+		turnarounds += p->turnaround;
+		p->turnaround = 0;
 	}
 	
 	//end
@@ -866,7 +873,7 @@ void RR(Process* processes, int n, int cs, int slice, std::ofstream& file) {
 		sprintf(buffer,"%.3lfms\n", totalWait / waitCount);
 		file << buffer;
 	}
-	file << "-- average turnaround time: " << ceilTo3(turnarounds / contextSwitches) << " ms\n";
+	file << "-- average turnaround time: " << ceilTo3(turnarounds / totalBursts(processes, n)) << " ms\n";
 	file << "-- total number of context switches: " << contextSwitches << "\n";
 	file << "-- total number of preemptions: " << preemptions << "\n";
 	file << "-- CPU utilization: " << CPUutil(processes, n, time) << "%\n";
@@ -913,7 +920,7 @@ int main(int argc, char** argv) {
 	
 	//do FCFS
 	resetAll(p, n);
-	//FCFS(p, n, cs, file);
+	FCFS(p, n, cs, file);
 	printf("\n");
 	
 	//do SJF
@@ -924,7 +931,7 @@ int main(int argc, char** argv) {
 	
 	//do SRT
 	resetAll(p, n);
-	//SRT(p, n, cs, alpha, lambda);
+	SRT(p, n, cs, alpha, lambda);
 	
 	//printf("\n");
 	
