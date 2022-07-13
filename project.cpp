@@ -85,10 +85,12 @@ class CPU {
 	}
 };
 
-double ceilTo3(double n){
+std::string ceilTo3(double n){
 	n *= 1000;
 	n = ceil(n);
-	return n/1000;
+	char buffer[256];
+	sprintf(buffer,"%.3lf ms\n", n / 1000);
+	return std::string(buffer);
 }
 
 double totalBurstTime(Process* processes, int n){
@@ -109,12 +111,12 @@ double totalBursts(Process* processes, int n){
 	return total;
 }
 
-double avgCPUBurstTime(Process* processes, int n) {
+std::string avgCPUBurstTime(Process* processes, int n) {
 	double total = totalBurstTime(processes, n);
 	return ceilTo3(total / totalBursts(processes, n)); 
 }
 
-double CPUutil(Process* processes, int n, int total_time){
+std::string CPUutil(Process* processes, int n, int total_time){
 	double total = totalBurstTime(processes, n);
 	return ceilTo3(total / total_time * 100);
 }
@@ -355,31 +357,40 @@ time 242ms: Process A switching out of CPU; will block on I/O until time 584ms [
 				if (current->CPUBursts.size() - current->step - 1 == 1){
 					grammar = "burst";
 				}
-				printTime(time);
-				printf("Process %c (tau %dms) completed a CPU burst; %ld %s to go ", current->ID, current->tau, current->CPUBursts.size() - current->step - 1, grammar.c_str());
-				cpu.printPQueue();
+
+				if (time < 1000){
+					printTime(time);
+					printf("Process %c (tau %dms) completed a CPU burst; %ld %s to go ", current->ID, current->tau, current->CPUBursts.size() - current->step - 1, grammar.c_str());
+					cpu.printPQueue();
+				}
 
 				int old_tau = current->tau;
 				current->tau = ceil(alpha * current->getCurrentCPUBurst() + (1-alpha) * old_tau);
 
-				printTime(time);
-				printf("Recalculated tau for process %c: old tau %dms; new tau %dms ", current->ID, old_tau, current->tau);
-				cpu.printPQueue();
+				if (time < 1000){
+					printTime(time);
+					printf("Recalculated tau for process %c: old tau %dms; new tau %dms ", current->ID, old_tau, current->tau);
+					cpu.printPQueue();
+				}
 
 				//added to io Burst
 				current->inIO = true;
 				//time remaining to get IOBurst and context switch out of this process
 				current->remaining = current->getCurrentIOBurst() + cs / 2; 
 
-				printTime(time);
-				printf("Process %c switching out of CPU; will block on I/O until time %dms ", current->ID, time + cs / 2 + current->getCurrentIOBurst());
-				cpu.printPQueue();
+				if (time < 1000){
+					printTime(time);
+					printf("Process %c switching out of CPU; will block on I/O until time %dms ", current->ID, time + cs / 2 + current->getCurrentIOBurst());
+					cpu.printPQueue();
+				}
 
 			} else {
 				//process terminated
-				printTime(time);
-				printf("Process %c terminated ", current->ID);
-				cpu.printPQueue();
+				if (time < 1000){
+					printTime(time);
+					printf("Process %c terminated ", current->ID);
+					cpu.printPQueue();
+				}
 				alive--;
 			}
 
@@ -405,9 +416,11 @@ time 242ms: Process A switching out of CPU; will block on I/O until time 584ms [
 			cpu.context--;
 			//announce arrival of process
 			if (cpu.context == 0){
-				printTime(time);
-				printf("Process %c (tau %dms) started using the CPU for %dms burst ", cpu.current->ID, cpu.current->tau, cpu.current->getCurrentCPUBurst());
-				cpu.printPQueue();
+				if (time < 1000){
+					printTime(time);
+					printf("Process %c (tau %dms) started using the CPU for %dms burst ", cpu.current->ID, cpu.current->tau, cpu.current->getCurrentCPUBurst());
+					cpu.printPQueue();
+				}
 
 				context_switches++;
 			}
@@ -422,9 +435,12 @@ time 242ms: Process A switching out of CPU; will block on I/O until time 584ms [
 					processes[i].step += 1;
 					cpu.push(processes+i);
 
-					printTime(time);
-					printf("Process %c (tau %dms) completed I/O; added to ready queue ", processes[i].ID, processes[i].tau);
-					cpu.printPQueue();
+					if (time < 1000){
+						printTime(time);
+						printf("Process %c (tau %dms) completed I/O; added to ready queue ", processes[i].ID, processes[i].tau);
+						cpu.printPQueue();
+					}
+					
 					total_waitTime--;
 				} else {
 					processes[i].remaining--;
@@ -438,9 +454,11 @@ time 242ms: Process A switching out of CPU; will block on I/O until time 584ms [
 			if (processes[i].arrival == time){
 				cpu.push(processes+i, tau_init);
 				processes[i].inQueue = true;
-				printTime(time);
-				printf("Process %c (tau %dms) arrived; added to ready queue ", processes[i].ID, tau_init);
-				cpu.printPQueue();
+				if (time < 1000){
+					printTime(time);
+					printf("Process %c (tau %dms) arrived; added to ready queue ", processes[i].ID, tau_init);
+					cpu.printPQueue();
+				}
 				total_waitTime--;
 			}
 		}
@@ -486,10 +504,11 @@ void preempt(CPU& cpu, int cs, int time, bool io = true, bool alreadyArrived = f
 		finished = "";
 	}
 
-	printTime(time);
-	printf("Process %c (tau %dms)%s %s %c ", cpu.top()->ID, cpu.top()->tau, finished.c_str(), preemptGrammar.c_str(), cpu.current->ID);
-	cpu.printPQueue();
-
+	if (time < 1000){
+		printTime(time);
+		printf("Process %c (tau %dms)%s %s %c ", cpu.top()->ID, cpu.top()->tau, finished.c_str(), preemptGrammar.c_str(), cpu.current->ID);
+		cpu.printPQueue();
+	}
 	//place the current process into the queue
 	cpu.push(cpu.current);
 	//take on the new process
@@ -536,31 +555,39 @@ to the ready queue); and (d) new process arrivals.
 				if (current->CPUBursts.size() - current->step - 1 == 1){
 					grammar = "burst";
 				}
-				printTime(time);
-				printf("Process %c (tau %dms) completed a CPU burst; %ld %s to go ", current->ID, current->tau, current->CPUBursts.size() - current->step - 1, grammar.c_str());
-				cpu.printPQueue();
+				if (time < 1000){
+					printTime(time);
+					printf("Process %c (tau %dms) completed a CPU burst; %ld %s to go ", current->ID, current->tau, current->CPUBursts.size() - current->step - 1, grammar.c_str());
+					cpu.printPQueue();
+				}
 
 				int old_tau = current->tau;
 				current->tau = ceil(alpha * current->getCurrentCPUBurst() + (1-alpha) * old_tau);
 
-				printTime(time);
-				printf("Recalculated tau for process %c: old tau %dms; new tau %dms ", current->ID, old_tau, current->tau);
-				cpu.printPQueue();
+				if (time < 1000){
+					printTime(time);
+					printf("Recalculated tau for process %c: old tau %dms; new tau %dms ", current->ID, old_tau, current->tau);
+					cpu.printPQueue();
+				}
 
 				//added to io Burst
 				current->inIO = true;
 				//time remaining to get IOBurst and context switch out of this process
 				current->remaining = current->getCurrentIOBurst() + cs / 2; 
 
-				printTime(time);
-				printf("Process %c switching out of CPU; will block on I/O until time %dms ", current->ID, time + cs / 2 + current->getCurrentIOBurst());
-				cpu.printPQueue();
+				if (time < 1000){
+					printTime(time);
+					printf("Process %c switching out of CPU; will block on I/O until time %dms ", current->ID, time + cs / 2 + current->getCurrentIOBurst());
+					cpu.printPQueue();
+				}
 
 			} else {
 				//process terminated
-				printTime(time);
-				printf("Process %c terminated ", current->ID);
-				cpu.printPQueue();
+				if (time < 1000){
+					printTime(time);
+					printf("Process %c terminated ", current->ID);
+					cpu.printPQueue();
+				}
 				alive--;
 			}
 
@@ -586,13 +613,15 @@ to the ready queue); and (d) new process arrivals.
 			//announce arrival of process
 			if (cpu.context == 0){
 				context_switches++;
-				printTime(time);
-				if (cpu.current->remaining == cpu.current->getCurrentCPUBurst() - 1){
-					printf("Process %c (tau %dms) started using the CPU for %dms burst ", cpu.current->ID, cpu.current->tau, cpu.current->getCurrentCPUBurst());
-				} else {
-					printf("Process %c (tau %dms) started using the CPU for remaining %dms of %dms burst ", cpu.current->ID, cpu.current->tau, cpu.current->remaining + 1, cpu.current->getCurrentCPUBurst());
+				if (time < 1000){
+					printTime(time);
+					if (cpu.current->remaining == cpu.current->getCurrentCPUBurst() - 1){
+						printf("Process %c (tau %dms) started using the CPU for %dms burst ", cpu.current->ID, cpu.current->tau, cpu.current->getCurrentCPUBurst());
+					} else {
+						printf("Process %c (tau %dms) started using the CPU for remaining %dms of %dms burst ", cpu.current->ID, cpu.current->tau, cpu.current->remaining + 1, cpu.current->getCurrentCPUBurst());
+					}
+					cpu.printPQueue();
 				}
-				cpu.printPQueue();
 
 				if (check_preempt != -1){
 					context_switches++;
@@ -621,15 +650,19 @@ to the ready queue); and (d) new process arrivals.
 							preempt(cpu, cs, time);
 						} else {
 							context_switches++;
-							printTime(time);
-							printf("Process %c (tau %dms) completed I/O; added to ready queue ", processes[i].ID, processes[i].tau);
-							cpu.printPQueue();
+							if (time < 1000){
+								printTime(time);
+								printf("Process %c (tau %dms) completed I/O; added to ready queue ", processes[i].ID, processes[i].tau);
+								cpu.printPQueue();
+							}
 							check_preempt = 1;
 						}
 					} else {
-						printTime(time);
-						printf("Process %c (tau %dms) completed I/O; added to ready queue ", processes[i].ID, processes[i].tau);
-						cpu.printPQueue();
+						if (time < 1000){
+							printTime(time);
+							printf("Process %c (tau %dms) completed I/O; added to ready queue ", processes[i].ID, processes[i].tau);
+							cpu.printPQueue();
+						}
 						total_waitTime--;
 					}
 				} else {
@@ -652,15 +685,19 @@ to the ready queue); and (d) new process arrivals.
 						preemptions++;
 						preempt(cpu, cs, time);
 					} else {
-						printTime(time);
-						printf("Process %c (tau %dms) arrived; added to ready queue ", processes[i].ID, processes[i].tau);
-						cpu.printPQueue();
+						if (time < 1000){
+							printTime(time);
+							printf("Process %c (tau %dms) arrived; added to ready queue ", processes[i].ID, processes[i].tau);
+							cpu.printPQueue();
+						}
 						check_preempt = 0;
 					}
 				} else {
-					printTime(time);
-					printf("Process %c (tau %dms) arrived; added to ready queue ", processes[i].ID, tau_init);
-					cpu.printPQueue();
+					if (time < 1000){
+						printTime(time);
+						printf("Process %c (tau %dms) arrived; added to ready queue ", processes[i].ID, tau_init);
+						cpu.printPQueue();
+					}
 					total_waitTime--;
 				}
 			}
