@@ -694,9 +694,11 @@ to the ready queue); and (d) new process arrivals.
 		//new process arrivals
 		for (int i = 0; i < n; ++i){
 			if (processes[i].arrival == time){
+				processes[i].step = 0;
+				processes[i].tau = tau_init;
+				processes[i].remaining = processes[i].getCurrentCPUBurst() - 1;
 				cpu.push(processes+i, tau_init, true);
 				processes[i].inQueue = true;
-				processes[i].remaining = processes[i].getCurrentCPUBurst();
 
 				//can preempt here
 				if (cpu.current != NULL && processes[i].tau < cpu.current->tau - (cpu.current->getCurrentCPUBurst() - cpu.current->remaining - 1)){
@@ -984,18 +986,18 @@ int main(int argc, char** argv) {
 	Process* p = build(n, seed, lambda, bound);
 	
 	//display processes
-	int tau_init = int(ceil(1/lambda));
-	for (int i = 0; i < n; i++) {
-		printf("Process %c: arrival time %dms; tau %dms; %ld CPU bursts:\n", p[i].ID, p[i].arrival, tau_init, p[i].CPUBursts.size());
-		for (int j = 0; j < int(p[i].CPUBursts.size()); j++) {
-			if (j != int(p[i].CPUBursts.size() - 1)) {
-				printf("--> CPU burst %dms --> I/O burst %dms\n", p[i].CPUBursts[j], p[i].IOBursts[j]);
-			}
-			else {
-				printf("--> CPU burst %dms\n", p[i].CPUBursts[j]);
-			}
-		}
-	}
+	// int tau_init = int(ceil(1/lambda));
+	// for (int i = 0; i < n; i++) {
+	// 	printf("Process %c: arrival time %dms; tau %dms; %ld CPU bursts:\n", p[i].ID, p[i].arrival, tau_init, p[i].CPUBursts.size());
+	// 	for (int j = 0; j < int(p[i].CPUBursts.size()); j++) {
+	// 		if (j != int(p[i].CPUBursts.size() - 1)) {
+	// 			printf("--> CPU burst %dms --> I/O burst %dms\n", p[i].CPUBursts[j], p[i].IOBursts[j]);
+	// 		}
+	// 		else {
+	// 			printf("--> CPU burst %dms\n", p[i].CPUBursts[j]);
+	// 		}
+	// 	}
+	// }
 	
 	printf("\n");
 	
