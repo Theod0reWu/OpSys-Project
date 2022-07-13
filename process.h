@@ -25,6 +25,8 @@ class Process {
 		Process(char ID, int arrival, int tau = 0);
 		bool operator<(const Process& b) const;
 		bool operator>(const Process& b) const;
+
+		bool lessThan(const Process& b) const;
 		void reset();
 		bool operator==(Process const& other) const;
 
@@ -42,7 +44,7 @@ public:
 class CompareAgain {
 public:
 	bool operator()(Process* a, Process* b){
-		return (*a) > (*b);
+		return a->lessThan(*b);
 	}
 };
 
