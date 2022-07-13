@@ -913,15 +913,7 @@ void RR(Process* processes, int n, int cs, int slice, std::ofstream& file) {
 	//output
 	file << "Algorithm RR\n";
 	file << "-- average CPU burst time: " << avgCPUBurstTime(processes, n) << " ms\n";
-	file << "-- average wait time: ";
-	if (totalWait == 0){
-		file << "0.000 ms\n";
-	} 
-	else {
-		char buffer[100];
-		sprintf(buffer,"%.3lf ms\n", totalWait / waitCount);
-		file << buffer;
-	}
+	file << "-- average wait time: " << ceilTo3(totalWait / waitCount) << " ms\n";
 	file << "-- average turnaround time: " << ceilTo3(turnarounds / totalBursts(processes, n)) << " ms\n";
 	file << "-- total number of context switches: " << contextSwitches << "\n";
 	file << "-- total number of preemptions: " << preemptions << "\n";
@@ -942,11 +934,14 @@ int main(int argc, char** argv) {
 	//printf("%d\n", seed);
 	
 	//validation error handling
+	if (n < 0 || n > 26 || cs < 0 || bound < 0 || slice < 0 || lamda < 0 || alpha < 0 || alpha > 1) {
+		fprintf(stderr, "Numerical values of arguments are invalid\n");
+		return 1;
+	}
 	
 	//open file
 	std::ofstream file;
 	file.open("simout.txt");
-
 	
 	//build processes
 	Process* p = build(n, seed, lambda, bound);
