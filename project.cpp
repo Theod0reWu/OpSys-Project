@@ -210,9 +210,9 @@ void FCFS(Process* processes, int n, int cs, std::ostream& file) {
 					if (time < 1000) cpu.printQueue();
 				}
 				else {
-					printTime(time);
-					printf("Process %c arrived; added to ready queue ", p->ID);
-					cpu.printQueue();
+					if (time < 1000) printTime(time);
+					if (time < 1000) printf("Process %c arrived; added to ready queue ", p->ID);
+					if (time < 1000) cpu.printQueue();
 				}
 			}
 			
@@ -849,9 +849,9 @@ void RR(Process* processes, int n, int cs, int slice, std::ofstream& file) {
 			if (time == p->nextArr && !(p->inIO) && !(p->inCPU) && !(p->inQueue)) {
 				cpu.push_back(*p);
 				p->inQueue = true;
-				printTime(time);
-				printf("Process %c arrived; added to ready queue ", p->ID);
-				cpu.printQueue();
+				if (time < 1000) printTime(time);
+				if (time < 1000) printf("Process %c arrived; added to ready queue ", p->ID);
+				if (time < 1000) cpu.printQueue();
 				p->remaining = p->CPUBursts[p->step];
 				p->turn = true;
 			}
