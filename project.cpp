@@ -14,6 +14,7 @@ class CPU {
 	private:
 		std::deque<Process> queue; //queue of processes
 		std::priority_queue<Process*, std::vector<Process*>, Compare> pqueue; //priority queue of processes (wait state)
+		std::priority_queue<Process*, std::vector<Process*>, CompareAgain> pqueueA;
 	public:
 		Process* current = NULL; //currently running process
 		Process* switching = NULL; //process currently being swapped in/out
@@ -24,29 +25,44 @@ class CPU {
 		queue.push_back(p);
 	}
 
-	void push(Process* p, int priority){
+	void push(Process* p, int priority, bool A = false){
 		p->tau = priority;
-		pqueue.push(p);
+		if (!A){
+			pqueue.push(p);
+		} else {
+			std::cout << "HEREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
+			pqueueA.push(p);
+		}		
 	}
 
-	void push(Process* p) {
-		pqueue.push(p);
+	void push(Process* p, bool A = false) {
+		if (!A){
+			pqueue.push(p);
+		} else {
+			pqueueA.push(p);
+		}
 	}
 
 	void pop_front(){
 		return queue.pop_front();
 	}
 
-	void pop(){
-		return pqueue.pop();
+	void pop(bool A = false){
+		if (!A){
+			return pqueue.pop();
+		}
+		return pqueueA.pop();
 	}
 	
 	const Process& front() {
 		return queue.front();
 	}
 	
-	Process * top(){
-		return pqueue.top();
+	Process * top(bool A = false){
+		if (!A){
+			return pqueue.top();
+		}
+		return pqueueA.top();
 	}
 
 	void printQueue() {
@@ -60,28 +76,47 @@ class CPU {
 		else {printf("]\n");}
 	}
 
-	void printPQueue() {
-		printf("[Q:");
-		bool empty = true;
-		std::priority_queue<Process*, std::vector<Process*>, Compare> temp;
-		while (pqueue.size() > 0){
-			Process * p = pqueue.top();
-			printf(" %c", p->ID);
-			empty = false;
-			pqueue.pop();
-			temp.push(p);
+	void printPQueue(bool A = false) {
+		if (!A){
+			printf("[Q:");
+			bool empty = true;
+			std::priority_queue<Process*, std::vector<Process*>, Compare> temp;
+			while (pqueue.size() > 0){
+				Process * p = pqueue.top();
+				printf(" %c", p->ID);
+				empty = false;
+				pqueue.pop();
+				temp.push(p);
+			}
+			pqueue = temp;
+			if (empty) {printf(" empty]\n");}
+			else {printf("]\n");}
+		} else {
+			printf("[Q:");
+			bool empty = true;
+			std::priority_queue<Process*, std::vector<Process*>, CompareAgain> temp;
+			while (pqueue.size() > 0){
+				Process * p = pqueueA.top();
+				printf(" %c", p->ID);
+				empty = false;
+				pqueueA.pop();
+				temp.push(p);
+			}
+			pqueueA = temp;
+			if (empty) {printf(" empty]\n");}
+			else {printf("]\n");}
 		}
-		pqueue = temp;
-		if (empty) {printf(" empty]\n");}
-		else {printf("]\n");}
 	}
 	
 	bool empty() {
 		return queue.empty();
 	}
 
-	bool size() {
-		return pqueue.size();
+	bool size(bool A = false) {
+		if (!A){
+			return pqueue.size();
+		}
+		return pqueueA.size();
 	}
 };
 
@@ -444,6 +479,7 @@ time 242ms: Process A switching out of CPU; will block on I/O until time 584ms [
 			if (processes[i].arrival == time){
 				cpu.push(processes+i, tau_init);
 				processes[i].inQueue = true;
+				processes[i].remaining = processes[i].getCurrentCPUBurst() - 1;
 				if (time < 1000){
 					printTime(time);
 					printf("Process %c (tau %dms) arrived; added to ready queue ", processes[i].ID, tau_init);
@@ -489,14 +525,14 @@ void preempt(CPU& cpu, int cs, int time, bool io = true, bool alreadyArrived = f
 
 	if (time < 1000){
 		printTime(time);
-		printf("Process %c (tau %dms)%s %s %c ", cpu.top()->ID, cpu.top()->tau, finished.c_str(), preemptGrammar.c_str(), cpu.current->ID);
-		cpu.printPQueue();
+		printf("Process %c (tau %dms)%s %s %c ", cpu.top(true)->ID, cpu.top(true)->tau, finished.c_str(), preemptGrammar.c_str(), cpu.current->ID);
+		cpu.printPQueue(true);
 	}
 	//place the current process into the queue
-	cpu.push(cpu.current);
+	cpu.push(cpu.current, true);
 	//take on the new process
-	cpu.current = cpu.top();
-	cpu.pop();
+	cpu.current = cpu.top(true);
+	cpu.pop(true);
 	//context switch
 	cpu.context = cs;
 }
@@ -516,7 +552,7 @@ void SRT(Process * processes, int n, int cs, double alpha, double lambda, std::o
 
 	printTime(time);
 	printf("Simulator started for SRT ");
-	cpu.printPQueue();
+	cpu.printPQueue(true);
 /*
 If different types of events occur at the same time, simulate these events using the following order:
 (a) CPU burst completion; (b) process starts using the CPU; (c) I/O burst completions (i.e., back
@@ -541,7 +577,7 @@ to the ready queue); and (d) new process arrivals.
 				if (time < 1000){
 					printTime(time);
 					printf("Process %c (tau %dms) completed a CPU burst; %ld %s to go ", current->ID, current->tau, current->CPUBursts.size() - current->step - 1, grammar.c_str());
-					cpu.printPQueue();
+					cpu.printPQueue(true);
 				}
 
 				int old_tau = current->tau;
@@ -550,7 +586,7 @@ to the ready queue); and (d) new process arrivals.
 				if (time < 1000){
 					printTime(time);
 					printf("Recalculated tau for process %c: old tau %dms; new tau %dms ", current->ID, old_tau, current->tau);
-					cpu.printPQueue();
+					cpu.printPQueue(true);
 				}
 
 				//added to io Burst
@@ -561,14 +597,14 @@ to the ready queue); and (d) new process arrivals.
 				if (time < 1000){
 					printTime(time);
 					printf("Process %c switching out of CPU; will block on I/O until time %dms ", current->ID, time + cs / 2 + current->getCurrentIOBurst());
-					cpu.printPQueue();
+					cpu.printPQueue(true);
 				}
 
 			} else {
 				//process terminated	
 				printTime(time);
 				printf("Process %c terminated ", current->ID);
-				cpu.printPQueue();
+				cpu.printPQueue(true);
 				
 				alive--;
 			}
@@ -581,10 +617,10 @@ to the ready queue); and (d) new process arrivals.
 			//either get process from ready queue or do nothing
 			if (cpu.context > 0) {
 				cpu.context--;
-			} else if (cpu.context == 0 && cpu.size() > 0) {
+			} else if (cpu.context == 0 && cpu.size(true) > 0) {
 				//move new process in
-				cpu.current = cpu.top();
-				cpu.pop();
+				cpu.current = cpu.top(true);
+				cpu.pop(true);
 				
 				//wait for context switch before announcing 
 				//cpu.current->remaining = cpu.current->getCurrentCPUBurst() - 1;
@@ -602,13 +638,14 @@ to the ready queue); and (d) new process arrivals.
 					} else {
 						printf("Process %c (tau %dms) started using the CPU for remaining %dms of %dms burst ", cpu.current->ID, cpu.current->tau, cpu.current->remaining + 1, cpu.current->getCurrentCPUBurst());
 					}
-					cpu.printPQueue();
+					cpu.printPQueue(true);
 				}
 
 				if (check_preempt != -1){
 					context_switches++;
 					check_preempt = -1;
 					preempt(cpu, cs, time, check_preempt, true);
+					preemptions++;
 				}
 			}
 		}
@@ -620,7 +657,7 @@ to the ready queue); and (d) new process arrivals.
 					processes[i].inIO = false;
 					processes[i].step += 1;
 					processes[i].remaining = processes[i].getCurrentCPUBurst() - 1;
-					cpu.push(processes+i);
+					cpu.push(processes+i, true);
 
 					//can preempt here
 					//only preempts if there is a process in the CPU
@@ -635,7 +672,7 @@ to the ready queue); and (d) new process arrivals.
 							if (time < 1000){
 								printTime(time);
 								printf("Process %c (tau %dms) completed I/O; added to ready queue ", processes[i].ID, processes[i].tau);
-								cpu.printPQueue();
+								cpu.printPQueue(true);
 							}
 							check_preempt = 1;
 						}
@@ -643,7 +680,7 @@ to the ready queue); and (d) new process arrivals.
 						if (time < 1000){
 							printTime(time);
 							printf("Process %c (tau %dms) completed I/O; added to ready queue ", processes[i].ID, processes[i].tau);
-							cpu.printPQueue();
+							cpu.printPQueue(true);
 						}
 						total_waitTime--;
 					}
@@ -657,9 +694,9 @@ to the ready queue); and (d) new process arrivals.
 		//new process arrivals
 		for (int i = 0; i < n; ++i){
 			if (processes[i].arrival == time){
-				cpu.push(processes+i, tau_init);
+				cpu.push(processes+i, tau_init, true);
 				processes[i].inQueue = true;
-				processes[i].remaining = processes[i].getCurrentCPUBurst() - 1;
+				processes[i].remaining = processes[i].getCurrentCPUBurst();
 
 				//can preempt here
 				if (cpu.current != NULL && processes[i].tau < cpu.current->tau - (cpu.current->getCurrentCPUBurst() - cpu.current->remaining - 1)){
@@ -670,7 +707,7 @@ to the ready queue); and (d) new process arrivals.
 						if (time < 1000){
 							printTime(time);
 							printf("Process %c (tau %dms) arrived; added to ready queue ", processes[i].ID, processes[i].tau);
-							cpu.printPQueue();
+							cpu.printPQueue(true);
 						}
 						check_preempt = 0;
 					}
@@ -678,7 +715,7 @@ to the ready queue); and (d) new process arrivals.
 					if (time < 1000){
 						printTime(time);
 						printf("Process %c (tau %dms) arrived; added to ready queue ", processes[i].ID, tau_init);
-						cpu.printPQueue();
+						cpu.printPQueue(true);
 					}
 					total_waitTime--;
 				}
@@ -686,14 +723,14 @@ to the ready queue); and (d) new process arrivals.
 		}
 
 		++time;
-		total_waitTime += cpu.size();
+		total_waitTime += cpu.size(true);
 		//printf("%d %d %p \n", time, cpu.context, cpu.current);
 	}
 
 	time = time + cs /2 - 1;
 	printTime(time);
 	printf("Simulator ended for SRT ");
-	cpu.printQueue();
+	cpu.printPQueue(true);
 
 	file << "Algorithm SRT\n";
 	file << "-- average CPU burst time: " << avgCPUBurstTime(processes, n) << " ms\n";
@@ -964,12 +1001,13 @@ int main(int argc, char** argv) {
 	
 	//do FCFS
 	resetAll(p, n);
-	FCFS(p, n, cs, file);
+	//FCFS(p, n, cs, file);
 	printf("\n");
 	
 	//do SJF
 	resetAll(p, n);
-	SJF(p, n, cs, alpha, lambda, file);
+	//SJF(p, n, cs, alpha, lambda, file);
+	//SJF(p, n, cs, alpha, lambda);
 	
 	printf("\n");
 	
@@ -981,7 +1019,7 @@ int main(int argc, char** argv) {
 	
 	//do RR
 	resetAll(p, n);
-	RR(p, n, cs, slice, file);
+	//RR(p, n, cs, slice, file);
 	
 	//cleanup
 	// for (int i = 0; i < n; i++) {

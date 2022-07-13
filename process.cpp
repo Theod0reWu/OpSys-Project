@@ -19,16 +19,22 @@ Process::Process(char ID, int arrival, int tau){
 }
 
 bool Process::operator<(const Process& b) const {
-	if (this->tau - this->getCurrentCPUBurst() + this->remaining > b.tau - b.getCurrentCPUBurst() + b.remaining){
+	if (this->tau  > b.tau){
 		return true;
-	} else if (this->tau == b.tau){
+	} else if (this->tau == b.tau ){
 		return this->ID > b.ID;
 	} 
 	return false;
 }
 
+
 bool Process::operator>(const Process& b) const{
-	return ! (*this == b) && ! (*this < b);
+	if (this->tau - this->getCurrentCPUBurst() + this->remaining < b.tau - b.getCurrentCPUBurst() + b.remaining){
+		return true;
+	} else if (this->tau - this->getCurrentCPUBurst() + this->remaining == b.tau - b.getCurrentCPUBurst() + b.remaining){
+		return this->ID < b.ID;
+	} 
+	return false;
 }
 
 //reset all values (except burst data)

@@ -35,7 +35,14 @@ class Process {
 class Compare {
 public:
 	bool operator()(Process* a, Process* b){
-		return *a < *b;
+		return (*a) < (*b);
+	}
+};
+
+class CompareAgain {
+public:
+	bool operator()(Process* a, Process* b){
+		return (*a) > (*b);
 	}
 };
 
