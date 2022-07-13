@@ -1036,7 +1036,7 @@ int main(int argc, char** argv) {
 	
 	//do SRT
 	resetAll(p, n);
-	//SRT(p, n, cs, alpha, lambda, file);
+	SRT(p, n, cs, alpha, lambda, file);
 	
 	printf("\n");
 	
