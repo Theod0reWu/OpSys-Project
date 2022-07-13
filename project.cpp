@@ -971,7 +971,7 @@ int main(int argc, char** argv) {
 	//printf("%d\n", seed);
 	
 	//validation error handling
-	if (n < 0 || n > 26 || cs < 0 || bound < 0 || slice < 0 || lamda < 0 || alpha < 0 || alpha > 1) {
+	if (n < 0 || n > 26 || cs < 0 || bound < 0 || slice < 0 || lambda < 0 || alpha < 0 || alpha > 1) {
 		fprintf(stderr, "Numerical values of arguments are invalid\n");
 		return 1;
 	}
