@@ -89,7 +89,7 @@ std::string ceilTo3(double n){
 	n *= 1000;
 	n = ceil(n);
 	char buffer[256];
-	sprintf(buffer,"%.3lf ms\n", n / 1000);
+	sprintf(buffer,"%.3lf", n / 1000);
 	return std::string(buffer);
 }
 
@@ -298,15 +298,7 @@ void FCFS(Process* processes, int n, int cs, std::ostream& file) {
 	//output
 	file << "Algorithm FCFS\n";
 	file << "-- average CPU burst time: " << avgCPUBurstTime(processes, n) << " ms\n";
-	file << "-- average wait time: ";
-	if (totalWait == 0){
-		file << "0.000 ms\n";
-	} 
-	else {
-		char buffer[100];
-		sprintf(buffer,"%.3lf ms\n", ceilTo3((totalWait / waitCount)));
-		file << buffer;
-	}
+	file << "-- average wait time: " << ceilTo3(totalWait / waitCount) << " ms\n";
 	file << "-- average turnaround time: " << ceilTo3(turnarounds / contextSwitches) << " ms\n";
 	file << "-- total number of context switches: " << contextSwitches << "\n";
 	file << "-- total number of preemptions: 0\n";
@@ -384,11 +376,11 @@ time 242ms: Process A switching out of CPU; will block on I/O until time 584ms [
 
 			} else {
 				//process terminated
-				if (time < 1000){
-					printTime(time);
-					printf("Process %c terminated ", current->ID);
-					cpu.printPQueue();
-				}
+
+				printTime(time);
+				printf("Process %c terminated ", current->ID);
+				cpu.printPQueue();
+				
 				alive--;
 			}
 
@@ -473,14 +465,7 @@ time 242ms: Process A switching out of CPU; will block on I/O until time 584ms [
 
 	file << "Algorithm SJF\n";
 	file << "-- average CPU burst time: " << avgCPUBurstTime(processes, n) << " ms\n";
-	file << "-- average wait time: ";
-	if (total_waitTime == 0){
-		file << "0.000 ms\n";
-	} else {
-		char buffer[100];
-		sprintf(buffer,"%.3lf ms\n", double(total_waitTime) / totalBursts(processes, n));
-		file << buffer;
-	}
+	file << "-- average wait time: " << ceilTo3(total_waitTime / totalBursts(processes, n)) << " ms\n";
 	file << "-- average turnaround time: " << ceilTo3((total_waitTime + totalBurstTime(processes, n) + context_switches * cs) / totalBursts(processes, n)) << " ms\n";
 	file << "-- total number of context switches: " << context_switches << "\n";
 	file << "-- total number of preemptions: " << 0 << "\n";
@@ -580,12 +565,11 @@ to the ready queue); and (d) new process arrivals.
 				}
 
 			} else {
-				//process terminated
-				if (time < 1000){
-					printTime(time);
-					printf("Process %c terminated ", current->ID);
-					cpu.printPQueue();
-				}
+				//process terminated	
+				printTime(time);
+				printf("Process %c terminated ", current->ID);
+				cpu.printPQueue();
+				
 				alive--;
 			}
 
@@ -713,14 +697,7 @@ to the ready queue); and (d) new process arrivals.
 
 	file << "Algorithm SRT\n";
 	file << "-- average CPU burst time: " << avgCPUBurstTime(processes, n) << " ms\n";
-	file << "-- average wait time: ";
-	if (total_waitTime == 0){
-		file << "0.000 ms\n";
-	} else {
-		char buffer[100];
-		sprintf(buffer,"%.3lf ms\n", double(total_waitTime) / totalBursts(processes, n));
-		file << buffer;
-	}
+	file << "-- average wait time: " << ceilTo3(total_waitTime / (totalBursts(processes, n) + preemptions)) << " ms\n";
 	file << "-- average turnaround time: " << ceilTo3((total_waitTime + totalBurstTime(processes, n) + context_switches * cs) / totalBursts(processes, n)) << " ms\n";
 	file << "-- total number of context switches: " << context_switches << "\n";
 	file << "-- total number of preemptions: " << preemptions << "\n";
