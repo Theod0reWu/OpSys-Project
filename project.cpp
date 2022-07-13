@@ -293,8 +293,6 @@ void FCFS(Process* processes, int n, int cs, std::ostream& file) {
 	printf("Simulator ended for FCFS ");
 	cpu.printQueue();
 	
-	printf("%f\n", turnarounds);
-	
 	//output
 	file << "Algorithm FCFS\n";
 	file << "-- average CPU burst time: " << avgCPUBurstTime(processes, n) << " ms\n";
@@ -897,8 +895,6 @@ void RR(Process* processes, int n, int cs, int slice, std::ofstream& file) {
 	printTime(time);
 	printf("Simulator ended for RR ");
 	cpu.printQueue();
-	
-	printf("%f\n", turnarounds);
 	
 	//output
 	file << "Algorithm RR\n";
