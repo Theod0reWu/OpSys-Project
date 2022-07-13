@@ -27,6 +27,15 @@ bool Process::operator<(const Process& b) const {
 	return false;
 }
 
+bool Process::lessThan(const Process& b) const{
+	if (this->tau - this->getCurrentCPUBurst() + this->remaining > b.tau - b.getCurrentCPUBurst() + b.remaining){
+		return true;
+	} else if (this->tau == b.tau){
+		return this->ID > b.ID;
+	} 
+	return false;
+}
+
 
 bool Process::operator>(const Process& b) const{
 	if (this->tau - this->getCurrentCPUBurst() + this->remaining < b.tau - b.getCurrentCPUBurst() + b.remaining){
@@ -47,6 +56,8 @@ void Process::reset() {
 	this->inCPU = false;
 	this->inQueue = false;
 	this->inIO = false;
+	this->remaining = 0;
+	this->tau = 0;
 }
 
 bool Process::operator==(Process const& other) const {
