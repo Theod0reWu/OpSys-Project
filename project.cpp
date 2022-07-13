@@ -955,7 +955,7 @@ int main(int argc, char** argv) {
 		}
 	}
 	
-	//printf("\n");
+	printf("\n");
 	
 	//do FCFS
 	resetAll(p, n);
@@ -964,15 +964,15 @@ int main(int argc, char** argv) {
 	
 	//do SJF
 	resetAll(p, n);
-	//SJF(p, n, cs, alpha, lambda, file);
+	SJF(p, n, cs, alpha, lambda, file);
 	
-	//printf("\n");
+	printf("\n");
 	
 	//do SRT
 	resetAll(p, n);
-	//SRT(p, n, cs, alpha, lambda, file);
+	SRT(p, n, cs, alpha, lambda, file);
 	
-	//printf("\n");
+	printf("\n");
 	
 	//do RR
 	resetAll(p, n);
