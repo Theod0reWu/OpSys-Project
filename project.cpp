@@ -1003,25 +1003,25 @@ int main(int argc, char** argv) {
 	
 	//do FCFS
 	resetAll(p, n);
-	//FCFS(p, n, cs, file);
+	FCFS(p, n, cs, file);
 	printf("\n");
 	
 	//do SJF
 	resetAll(p, n);
-	//SJF(p, n, cs, alpha, lambda, file);
+	SJF(p, n, cs, alpha, lambda, file);
 	//SJF(p, n, cs, alpha, lambda);
 	
 	printf("\n");
 	
 	//do SRT
 	resetAll(p, n);
-	SRT(p, n, cs, alpha, lambda, file);
+	//SRT(p, n, cs, alpha, lambda, file);
 	
 	printf("\n");
 	
 	//do RR
 	resetAll(p, n);
-	//RR(p, n, cs, slice, file);
+	RR(p, n, cs, slice, file);
 	
 	//cleanup
 	// for (int i = 0; i < n; i++) {
