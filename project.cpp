@@ -741,6 +741,7 @@ void RR(Process* processes, int n, int cs, int slice, std::ofstream& file) {
 					
 					if (p->CPUTime == p->remaining) { //CPU burst done
 						p->preempt = false;
+						waitCount++; 
 						
 						if (p->step == int(p->CPUBursts.size()-1)) { //termination
 							p->inQueue = false;
@@ -869,7 +870,6 @@ void RR(Process* processes, int n, int cs, int slice, std::ofstream& file) {
 					cpu.pop_front();
 					
 					totalWait += p->waitTime;
-					waitCount++;
 					p->waitTime = 0;
 				}
 				else {p->waitTime++;}
@@ -919,7 +919,7 @@ void RR(Process* processes, int n, int cs, int slice, std::ofstream& file) {
 	} 
 	else {
 		char buffer[100];
-		sprintf(buffer,"%.3lfms\n", totalWait / waitCount);
+		sprintf(buffer,"%.3lf ms\n", totalWait / waitCount);
 		file << buffer;
 	}
 	file << "-- average turnaround time: " << ceilTo3(turnarounds / totalBursts(processes, n)) << " ms\n";
