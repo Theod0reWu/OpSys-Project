@@ -178,9 +178,9 @@ void FCFS(Process* processes, int n, int cs, std::ostream& file) {
 				cpu.switching = NULL;
 				cpu.pop_front();
 				
-				printTime(time);
-				printf("Process %c started using the CPU for %dms burst ", a->ID, a->CPUBursts[a->step]);
-				cpu.printQueue();
+				if (time < 1000) printTime(time);
+				if (time < 1000) printf("Process %c started using the CPU for %dms burst ", a->ID, a->CPUBursts[a->step]);
+				if (time < 1000) cpu.printQueue();
 				contextSwitches++;
 			}
 			else { //switching out of CPU
@@ -203,9 +203,9 @@ void FCFS(Process* processes, int n, int cs, std::ostream& file) {
 				if (p->inIO) {
 					p->inIO = false;
 					p->step++;
-					printTime(time);
-					printf("Process %c completed I/O; added to ready queue ", p->ID);
-					cpu.printQueue();
+					if (time < 1000) printTime(time);
+					if (time < 1000) printf("Process %c completed I/O; added to ready queue ", p->ID);
+					if (time < 1000) cpu.printQueue();
 				}
 				else {
 					printTime(time);
@@ -254,18 +254,18 @@ void FCFS(Process* processes, int n, int cs, std::ostream& file) {
 					p->nextArr = next;
 					
 					if ((p->CPUBursts.size())-(p->step)-1 == 1) {
-							printTime(time);
-							printf("Process %c completed a CPU burst; %ld burst to go ", p->ID, (p->CPUBursts.size())-(p->step)-1);
-							cpu.printQueue();
+						if (time < 1000) printTime(time);
+						if (time < 1000) printf("Process %c completed a CPU burst; %ld burst to go ", p->ID, (p->CPUBursts.size())-(p->step)-1);
+						if (time < 1000) cpu.printQueue();
 						}
-						else {
-							printTime(time);
-							printf("Process %c completed a CPU burst; %ld bursts to go ", p->ID, (p->CPUBursts.size())-(p->step)-1);
-							cpu.printQueue();
+					else {
+						if (time < 1000) printTime(time);
+						if (time < 1000) printf("Process %c completed a CPU burst; %ld bursts to go ", p->ID, (p->CPUBursts.size())-(p->step)-1);
+						if (time < 1000) cpu.printQueue();
 					}
-					printTime(time);
-					printf("Process %c switching out of CPU; will block on I/O until time %dms ", p->ID, next);
-					cpu.printQueue();
+					if (time < 1000) printTime(time);
+					if (time < 1000) printf("Process %c switching out of CPU; will block on I/O until time %dms ", p->ID, next);
+					if (time < 1000) cpu.printQueue();
 				}
 				p->CPUTime++;
 			}
@@ -302,7 +302,7 @@ void FCFS(Process* processes, int n, int cs, std::ostream& file) {
 	} 
 	else {
 		char buffer[100];
-		sprintf(buffer,"%.3lfms\n", totalWait / waitCount);
+		sprintf(buffer,"%.3lf ms\n", ceilTo3((totalWait / waitCount)));
 		file << buffer;
 	}
 	file << "-- average turnaround time: " << ceilTo3(turnarounds / contextSwitches) << " ms\n";
@@ -744,18 +744,18 @@ void RR(Process* processes, int n, int cs, int slice, std::ofstream& file) {
 						p->nextArr = next;
 						
 						if ((p->CPUBursts.size())-(p->step)-1 == 1) {
-							printTime(time);
-							printf("Process %c completed a CPU burst; %ld burst to go ", p->ID, (p->CPUBursts.size())-(p->step)-1);
-							cpu.printQueue();
+							if (time < 1000) printTime(time);
+							if (time < 1000) printf("Process %c completed a CPU burst; %ld burst to go ", p->ID, (p->CPUBursts.size())-(p->step)-1);
+							if (time < 1000) cpu.printQueue();
 						}
 						else {
-							printTime(time);
-							printf("Process %c completed a CPU burst; %ld bursts to go ", p->ID, (p->CPUBursts.size())-(p->step)-1);
-							cpu.printQueue();
+							if (time < 1000) printTime(time);
+							if (time < 1000) printf("Process %c completed a CPU burst; %ld bursts to go ", p->ID, (p->CPUBursts.size())-(p->step)-1);
+							if (time < 1000) cpu.printQueue();
 						}
-						printTime(time);
-						printf("Process %c switching out of CPU; will block on I/O until time %dms ", p->ID, next);
-						cpu.printQueue();
+						if (time < 1000) printTime(time);
+						if (time < 1000) printf("Process %c switching out of CPU; will block on I/O until time %dms ", p->ID, next);
+						if (time < 1000) cpu.printQueue();
 						continue;
 					}
 					else { //time slice ran out
@@ -764,17 +764,17 @@ void RR(Process* processes, int n, int cs, int slice, std::ofstream& file) {
 						p->CPUTime = 0;
 						if (cpu.empty()) { //no preemption
 							p->preempt = false;
-							printTime(time);
-							printf("Time slice expired; no preemption because ready queue is empty ");
-							cpu.printQueue();
+							if (time < 1000) printTime(time);
+							if (time < 1000) printf("Time slice expired; no preemption because ready queue is empty ");
+							if (time < 1000) cpu.printQueue();
 						}
 						else { //preempt here
 							p->preempt = true;
 							preemptions++;
 						
-							printTime(time);
-							printf("Time slice expired; process %c preempted with %dms remaining ", p->ID, p->remaining);
-							cpu.printQueue();
+							if (time < 1000) printTime(time);
+							if (time < 1000) printf("Time slice expired; process %c preempted with %dms remaining ", p->ID, p->remaining);
+							if (time < 1000) cpu.printQueue();
 						}
 					}
 				}
@@ -791,14 +791,14 @@ void RR(Process* processes, int n, int cs, int slice, std::ofstream& file) {
 				cpu.switching = NULL;
 				contextSwitches++;
 				
-				printTime(time);
+				if (time < 1000) printTime(time);
 				if (a->remaining < (a->CPUBursts)[a->step]) {
-					printf("Process %c started using the CPU for remaining %dms of %dms burst ", a->ID, a->remaining, a->CPUBursts[a->step]);
+					if (time < 1000) printf("Process %c started using the CPU for remaining %dms of %dms burst ", a->ID, a->remaining, a->CPUBursts[a->step]);
 				}
 				else {
-					printf("Process %c started using the CPU for %dms burst ", a->ID, a->CPUBursts[a->step]);
+					if (time < 1000) printf("Process %c started using the CPU for %dms burst ", a->ID, a->CPUBursts[a->step]);
 				}
-				cpu.printQueue();
+				if (time < 1000) cpu.printQueue();
 			}
 			else if (a->preempt) { //preemption
 				a->inQueue = true;
@@ -820,9 +820,9 @@ void RR(Process* processes, int n, int cs, int slice, std::ofstream& file) {
 				p->inQueue = true;
 				p->inIO = false;
 				p->step++;
-				printTime(time);
-				printf("Process %c completed I/O; added to ready queue ", p->ID);
-				cpu.printQueue();
+				if (time < 1000) printTime(time);
+				if (time < 1000) printf("Process %c completed I/O; added to ready queue ", p->ID);
+				if (time < 1000) cpu.printQueue();
 				p->remaining = p->CPUBursts[p->step];
 				p->turn = true;
 			}
