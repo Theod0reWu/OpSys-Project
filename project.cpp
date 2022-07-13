@@ -278,7 +278,7 @@ void FCFS(Process* processes, int n, int cs, std::ostream& file) {
 				p->turnaround++;
 			}
 			else {
-				if (p->turnaround) {std::cout << "here: " << p->turnaround << std::endl;}
+				//if (p->turnaround) {std::cout << "here: " << p->turnaround << std::endl;}
 				turnarounds += p->turnaround;
 				p->turnaround = 0;
 			}
@@ -292,6 +292,8 @@ void FCFS(Process* processes, int n, int cs, std::ostream& file) {
 	printTime(time);
 	printf("Simulator ended for FCFS ");
 	cpu.printQueue();
+	
+	printf("%f\n", turnarounds);
 	
 	//output
 	file << "Algorithm FCFS\n";
@@ -873,28 +875,30 @@ void RR(Process* processes, int n, int cs, int slice, std::ofstream& file) {
 				p->turnaround++;
 			}
 			else {
-				if (p->turnaround) {std::cout << "here: " << p->turnaround << std::endl;}
+				//if (p->turnaround) {std::cout << "here: " << p->turnaround << std::endl;}
 				turnarounds += p->turnaround;
 				p->turnaround = 0;
 			}
 		}
+		
 		time++;
 	}
+	
 	for (int i = 0; i < n; i++) {
 		Process* p = &(processes[i]);
-		if (!(p->turn)) {
+		if (p->turnaround > 0) {
+			//if (p->turnaround) {std::cout << "here: " << p->turnaround << std::endl;}
+			turnarounds += p->turnaround;
 			p->turnaround = 0;
 		}
-	}
-	for (int i = 0; i < n; i++) {
-		Process* p = &(processes[i]);
-		turnarounds += p->turnaround;
 	}
 	
 	//end
 	printTime(time);
 	printf("Simulator ended for RR ");
 	cpu.printQueue();
+	
+	printf("%f\n", turnarounds);
 	
 	//output
 	file << "Algorithm RR\n";
@@ -960,13 +964,13 @@ int main(int argc, char** argv) {
 	
 	//do SJF
 	resetAll(p, n);
-	SJF(p, n, cs, alpha, lambda, file);
+	//SJF(p, n, cs, alpha, lambda, file);
 	
 	//printf("\n");
 	
 	//do SRT
 	resetAll(p, n);
-	SRT(p, n, cs, alpha, lambda, file);
+	//SRT(p, n, cs, alpha, lambda, file);
 	
 	//printf("\n");
 	
