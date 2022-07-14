@@ -14,7 +14,7 @@ class CPU {
 	private:
 		std::deque<Process> queue; //queue of processes
 		std::priority_queue<Process*, std::vector<Process*>, Compare> pqueue; //priority queue of processes (wait state)
-		std::priority_queue<Process*, std::vector<Process*>, CompareAgain> pqueueA;
+		std::priority_queue<Process*, std::vector<Process*>, CompareAgain> pqueueA = std::priority_queue<Process*, std::vector<Process*>, CompareAgain>();
 	public:
 		Process* current = NULL; //currently running process
 		Process* switching = NULL; //process currently being swapped in/out
@@ -129,14 +129,14 @@ class CPU {
 		return queue.empty();
 	}
 
-	bool size(bool A = false) {
+	int size(bool A = false) {
 		if (!A){
 			return pqueue.size();
 		}
 		return pqueueA.size();
 	}
 
-	bool sizeA(){
+	int sizeA(){
 		return pqueueA.size();
 	}
 };
@@ -370,7 +370,7 @@ void SJF(Process * processes, int n, int cs, double alpha, double lambda, std::o
 	int alive = n; //counter for how many processes are still alive
 	int tau_init = int(ceil(1/lambda));
 
-	int total_waitTime = 0;
+	double total_waitTime = 0;
 	int context_switches = 0;
 
 	printTime(time);
@@ -515,14 +515,14 @@ time 242ms: Process A switching out of CPU; will block on I/O until time 584ms [
 		++time;
 		//printf("%d %d %p \n", time, cpu.context, cpu.current);
 	}
-	time = time + cs /2 - 1;
+	time = time + cs / 2 - 1;
 	printTime(time);
 	printf("Simulator ended for SJF ");
 	cpu.printQueue();
 
 	file << "Algorithm SJF\n";
 	file << "-- average CPU burst time: " << avgCPUBurstTime(processes, n) << " ms\n";
-	file << "-- average wait time: " << ceilTo3(total_waitTime / totalBursts(processes, n)) << " ms\n";
+	file << "-- average wait time: " << ceilTo3( total_waitTime / totalBursts(processes, n) ) << " ms\n";
 	file << "-- average turnaround time: " << ceilTo3((total_waitTime + totalBurstTime(processes, n) + context_switches * cs) / totalBursts(processes, n)) << " ms\n";
 	file << "-- total number of context switches: " << context_switches << "\n";
 	file << "-- total number of preemptions: " << 0 << "\n";
@@ -581,6 +581,7 @@ to the ready queue); and (d) new process arrivals.
 
 */
 	while (alive > 0){
+		total_waitTime += cpu.size(true);
 		if (cpu.current != NULL && cpu.current->remaining > 0 && cpu.context == 0){
 			//cpu burst moving along
 			cpu.current->remaining--;
@@ -629,7 +630,7 @@ to the ready queue); and (d) new process arrivals.
 				
 				alive--;
 			}
-
+			total_waitTime--;
 			cpu.context = cs / 2+1; //time for the process to leave the cpu (add one cause it is instantly subtracted)
 		}
 
@@ -663,7 +664,7 @@ to the ready queue); and (d) new process arrivals.
 				}
 
 				if (check_preempt != -1){
-					context_switches++;
+					//context_switches++;
 					check_preempt = -1;
 					preempt(cpu, cs, time, check_preempt, true);
 					preemptions++;
@@ -684,12 +685,10 @@ to the ready queue); and (d) new process arrivals.
 					//only preempts if there is a process in the CPU
 					if (cpu.current != NULL && processes[i].tau < cpu.current->tau - (cpu.current->getCurrentCPUBurst() - cpu.current->remaining - 1)){
 						if (cpu.context == 0){
-							//change the wait time
-							//total_waitTime -= cs / 2;
 							preemptions++;
 							preempt(cpu, cs, time);
 						} else {
-							context_switches++;
+							//added to queue
 							if (time < 1000){
 								printTime(time);
 								printf("Process %c (tau %dms) completed I/O; added to ready queue ", processes[i].ID, processes[i].tau);
@@ -703,7 +702,7 @@ to the ready queue); and (d) new process arrivals.
 							printf("Process %c (tau %dms) completed I/O; added to ready queue ", processes[i].ID, processes[i].tau);
 							cpu.printPQueue(true);
 						}
-						total_waitTime--;
+						//total_waitTime--;
 					}
 				} else {
 					processes[i].remaining--;
@@ -725,6 +724,7 @@ to the ready queue); and (d) new process arrivals.
 				if (cpu.current != NULL && processes[i].tau < cpu.current->tau - (cpu.current->getCurrentCPUBurst() - cpu.current->remaining - 1)){
 					if (cpu.context == 0){
 						preemptions++;
+						//total_waitTime--;
 						preempt(cpu, cs, time);
 					} else {
 						if (time < 1000){
@@ -740,13 +740,14 @@ to the ready queue); and (d) new process arrivals.
 						printf("Process %c (tau %dms) arrived; added to ready queue ", processes[i].ID, tau_init);
 						cpu.printPQueue(true);
 					}
-					total_waitTime--;
+					//total_waitTime--;
 				}
 			}
 		}
 
+		//std::cout << time << std::endl;
 		++time;
-		total_waitTime += cpu.size(true);
+		//total_waitTime += cpu.size(true);
 		//printf("%d %d %p \n", time, cpu.context, cpu.current);
 	}
 
@@ -757,7 +758,7 @@ to the ready queue); and (d) new process arrivals.
 
 	file << "Algorithm SRT\n";
 	file << "-- average CPU burst time: " << avgCPUBurstTime(processes, n) << " ms\n";
-	file << "-- average wait time: " << ceilTo3(total_waitTime / (totalBursts(processes, n) + preemptions)) << " ms\n";
+	file << "-- average wait time: " << ceilTo3( double(total_waitTime) / (totalBursts(processes, n))) << " ms\n";
 	file << "-- average turnaround time: " << ceilTo3((total_waitTime + totalBurstTime(processes, n) + context_switches * cs) / totalBursts(processes, n)) << " ms\n";
 	file << "-- total number of context switches: " << context_switches << "\n";
 	file << "-- total number of preemptions: " << preemptions << "\n";
@@ -1009,7 +1010,11 @@ int main(int argc, char** argv) {
 	//display processes
 	int tau_init = int(ceil(1/lambda));
 	for (int i = 0; i < n; i++) {
-		printf("Process %c: arrival time %dms; tau %dms; %ld CPU bursts:\n", p[i].ID, p[i].arrival, tau_init, p[i].CPUBursts.size());
+		std::string grammar = "bursts";
+		if (p[i].CPUBursts.size() == 1){
+			grammar = "burst";
+		}
+		printf("Process %c: arrival time %dms; tau %dms; %ld CPU %s:\n", p[i].ID, p[i].arrival, tau_init, p[i].CPUBursts.size(), grammar.c_str());
 		for (int j = 0; j < int(p[i].CPUBursts.size()); j++) {
 			if (j != int(p[i].CPUBursts.size() - 1)) {
 				printf("--> CPU burst %dms --> I/O burst %dms\n", p[i].CPUBursts[j], p[i].IOBursts[j]);
@@ -1036,7 +1041,7 @@ int main(int argc, char** argv) {
 	
 	//do SRT
 	resetAll(p, n);
-	//SRT(p, n, cs, alpha, lambda, file);
+	SRT(p, n, cs, alpha, lambda, file);
 	
 	printf("\n");
 	
